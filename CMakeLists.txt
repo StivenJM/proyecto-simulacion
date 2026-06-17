@@ -18,6 +18,9 @@ add_executable(AcousticSimulator
     src/gui/CameraController.h
     src/gui/OpenGLRenderer.cpp
     src/gui/OpenGLRenderer.h
+    src/gui/RenderTypes.h
+    src/gui/SceneEditor.cpp
+    src/gui/SceneEditor.h
 )
 
 target_include_directories(AcousticSimulator

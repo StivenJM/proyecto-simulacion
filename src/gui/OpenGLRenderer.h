@@ -2,6 +2,9 @@
 
 #include "AppMode.h"
 #include "CameraController.h"
+#include "RenderTypes.h"
+
+#include <vector>
 
 namespace gui {
 
@@ -14,14 +17,18 @@ public:
     OpenGLRenderer& operator=(const OpenGLRenderer&) = delete;
 
     bool initialize();
-    void render(const Mat4& viewProjectionMatrix, AppMode mode, bool simulationStarted);
+    void render(
+        const Mat4& viewProjectionMatrix,
+        const std::vector<LineVertex>& lineVertices,
+        AppMode mode,
+        bool simulationStarted
+    );
     void shutdown();
 
 private:
     unsigned int shaderProgram_ = 0;
     unsigned int vertexArray_ = 0;
     unsigned int vertexBuffer_ = 0;
-    int lineVertexCount_ = 0;
 };
 
 }  // namespace gui

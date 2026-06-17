@@ -3,6 +3,7 @@
 #include "AppMode.h"
 #include "CameraController.h"
 #include "OpenGLRenderer.h"
+#include "SceneEditor.h"
 
 struct GLFWwindow;
 
@@ -24,6 +25,7 @@ private:
 
     void resize(int width, int height);
     void processInput();
+    void processPreparationInput(float deltaTime);
     void toggleMode();
     void startSimulation();
     void updateWindowTitle();
@@ -32,11 +34,15 @@ private:
 
     GLFWwindow* window_ = nullptr;
     CameraController camera_;
+    SceneEditor sceneEditor_;
     OpenGLRenderer renderer_;
     AppMode mode_ = AppMode::Preparation;
     bool simulationStarted_ = false;
     bool tabWasPressed_ = false;
     bool enterWasPressed_ = false;
+    bool pWasPressed_ = false;
+    bool bWasPressed_ = false;
+    bool cWasPressed_ = false;
 };
 
 }  // namespace gui
