@@ -3,10 +3,19 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
+#include "composition/GuiComposition.h"
+
 #include <iostream>
 #include <string>
 
 namespace gui {
+
+App::App()
+    : services_(GuiComposition::createServices({})),
+      scenario_(services_.scenarioService->createInitialScenario(selection_)),
+      preparationScreen_(scenario_, selection_, *services_.planeService)
+{
+}
 
 App::~App()
 {
@@ -51,7 +60,8 @@ bool App::initialize()
     updateWindowTitle();
 
     std::cout << "Controls: Tab switches Preparation/Simulation mode, Enter starts simulation mode, Esc closes.\n";
-    std::cout << "Preparation: P adds a plane, B adds a room, C selects next plane, I/K/J/L/U/O moves selected plane.\n";
+    std::cout << "Preparation: P adds a rectangular plane, B adds a room, C selects next plane, I/K/J/L/U/O moves selected plane.\n";
+    std::cout << "Point planes: N starts draft, M adds cursor point, I/K/J/L/U/O moves draft cursor, F finalizes, V edits selected plane, X cancels draft.\n";
     return renderer_.initialize();
 }
 
@@ -64,64 +74,21 @@ void App::run()
         const float deltaTime = currentTime - previousTime;
         previousTime = currentTime;
 
+        input_.update(window_);
         processInput();
-        processPreparationInput(deltaTime);
+        if (mode_ == AppMode::Preparation && preparationScreen_.handleInput(input_, deltaTime)) {
+            updateWindowTitle();
+        }
         camera_.update(window_, deltaTime);
-        renderer_.render(camera_.viewProjectionMatrix(), sceneEditor_.buildLineVertices(), mode_, simulationStarted_);
+        renderer_.render(
+            camera_.viewProjectionMatrix(),
+            renderMapper_.buildLineVertices(scenario_, selection_, preparationScreen_.draft()),
+            mode_,
+            simulationScreen_.isStarted()
+        );
 
         glfwSwapBuffers(window_);
         glfwPollEvents();
-    }
-}
-
-void App::processPreparationInput(float deltaTime)
-{
-    if (mode_ != AppMode::Preparation) {
-        return;
-    }
-
-    if (isKeyPressedOnce(GLFW_KEY_P, pWasPressed_)) {
-        sceneEditor_.addPlane();
-        updateWindowTitle();
-        std::cout << "Added plane " << sceneEditor_.selectedPlaneId() << ".\n";
-    }
-
-    if (isKeyPressedOnce(GLFW_KEY_B, bWasPressed_)) {
-        sceneEditor_.addRoom();
-        updateWindowTitle();
-        std::cout << "Added room planes. Selected plane " << sceneEditor_.selectedPlaneId() << ".\n";
-    }
-
-    if (isKeyPressedOnce(GLFW_KEY_C, cWasPressed_)) {
-        sceneEditor_.selectNext();
-        updateWindowTitle();
-        std::cout << "Selected plane " << sceneEditor_.selectedPlaneId() << ".\n";
-    }
-
-    const float moveSpeed = 2.0f * deltaTime;
-    Vec3 delta{0.0f, 0.0f, 0.0f};
-
-    if (glfwGetKey(window_, GLFW_KEY_J) == GLFW_PRESS) {
-        delta.x -= moveSpeed;
-    }
-    if (glfwGetKey(window_, GLFW_KEY_L) == GLFW_PRESS) {
-        delta.x += moveSpeed;
-    }
-    if (glfwGetKey(window_, GLFW_KEY_U) == GLFW_PRESS) {
-        delta.y += moveSpeed;
-    }
-    if (glfwGetKey(window_, GLFW_KEY_O) == GLFW_PRESS) {
-        delta.y -= moveSpeed;
-    }
-    if (glfwGetKey(window_, GLFW_KEY_I) == GLFW_PRESS) {
-        delta.z -= moveSpeed;
-    }
-    if (glfwGetKey(window_, GLFW_KEY_K) == GLFW_PRESS) {
-        delta.z += moveSpeed;
-    }
-
-    if (delta.x != 0.0f || delta.y != 0.0f || delta.z != 0.0f) {
-        sceneEditor_.moveSelected(delta);
     }
 }
 
@@ -141,15 +108,15 @@ void App::resize(int width, int height)
 
 void App::processInput()
 {
-    if (glfwGetKey(window_, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+    if (input_.isDown(GLFW_KEY_ESCAPE)) {
         glfwSetWindowShouldClose(window_, true);
     }
 
-    if (isKeyPressedOnce(GLFW_KEY_TAB, tabWasPressed_)) {
+    if (input_.wasPressed(GLFW_KEY_TAB)) {
         toggleMode();
     }
 
-    if (isKeyPressedOnce(GLFW_KEY_ENTER, enterWasPressed_)) {
+    if (input_.wasPressed(GLFW_KEY_ENTER)) {
         startSimulation();
     }
 }
@@ -160,7 +127,7 @@ void App::toggleMode()
         mode_ = AppMode::Simulation;
     } else {
         mode_ = AppMode::Preparation;
-        simulationStarted_ = false;
+        simulationScreen_.reset();
     }
 
     updateWindowTitle();
@@ -173,8 +140,7 @@ void App::startSimulation()
         return;
     }
 
-    if (!simulationStarted_) {
-        simulationStarted_ = true;
+    if (simulationScreen_.start()) {
         updateWindowTitle();
         std::cout << "Simulation started. Preparation editing is locked.\n";
     }
@@ -184,22 +150,14 @@ void App::updateWindowTitle()
 {
     std::string title = "Acoustic Simulator - ";
     if (mode_ == AppMode::Preparation) {
-        title += "Preparation Mode [Plane " + std::to_string(sceneEditor_.selectedPlaneId()) + "] [P: Add Plane] [C: Select] [Tab: Simulation]";
-    } else if (simulationStarted_) {
+        title += "Preparation Mode [Plane " + std::to_string(preparationScreen_.selectedPlaneId()) + "] [N: Draft] [M: Point] [F: Finish] [V: Edit] [Tab: Simulation]";
+    } else if (simulationScreen_.isStarted()) {
         title += "Simulation Mode - Running [Tab: Preparation]";
     } else {
         title += "Simulation Mode - Ready [Enter: Start] [Tab: Preparation]";
     }
 
     glfwSetWindowTitle(window_, title.c_str());
-}
-
-bool App::isKeyPressedOnce(int key, bool& previousState) const
-{
-    const bool isPressed = glfwGetKey(window_, key) == GLFW_PRESS;
-    const bool wasPressedNow = isPressed && !previousState;
-    previousState = isPressed;
-    return wasPressedNow;
 }
 
 }  // namespace gui

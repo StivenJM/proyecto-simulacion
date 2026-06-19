@@ -120,12 +120,7 @@ bool OpenGLRenderer::initialize()
     return true;
 }
 
-void OpenGLRenderer::render(
-    const Mat4& viewProjectionMatrix,
-    const std::vector<LineVertex>& lineVertices,
-    AppMode mode,
-    bool simulationStarted
-)
+void OpenGLRenderer::render(const Mat4& viewProjectionMatrix, const std::vector<LineVertex>& lineVertices, AppMode mode, bool simulationStarted)
 {
     if (mode == AppMode::Preparation) {
         glClearColor(0.055f, 0.075f, 0.11f, 1.0f);
@@ -143,12 +138,7 @@ void OpenGLRenderer::render(
 
     glBindVertexArray(vertexArray_);
     glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer_);
-    glBufferData(
-        GL_ARRAY_BUFFER,
-        static_cast<long long>(lineVertices.size() * sizeof(LineVertex)),
-        lineVertices.data(),
-        GL_DYNAMIC_DRAW
-    );
+    glBufferData(GL_ARRAY_BUFFER, static_cast<long long>(lineVertices.size() * sizeof(LineVertex)), lineVertices.data(), GL_DYNAMIC_DRAW);
     glDrawArrays(GL_LINES, 0, static_cast<int>(lineVertices.size()));
     glBindVertexArray(0);
 }

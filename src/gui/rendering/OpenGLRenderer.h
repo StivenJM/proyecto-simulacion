@@ -1,8 +1,8 @@
 #pragma once
 
-#include "AppMode.h"
-#include "CameraController.h"
-#include "RenderTypes.h"
+#include "gui/AppMode.h"
+#include "gui/input/CameraController.h"
+#include "gui/rendering/RenderTypes.h"
 
 #include <vector>
 
@@ -17,12 +17,7 @@ public:
     OpenGLRenderer& operator=(const OpenGLRenderer&) = delete;
 
     bool initialize();
-    void render(
-        const Mat4& viewProjectionMatrix,
-        const std::vector<LineVertex>& lineVertices,
-        AppMode mode,
-        bool simulationStarted
-    );
+    void render(const Mat4& viewProjectionMatrix, const std::vector<LineVertex>& lineVertices, AppMode mode, bool simulationStarted);
     void shutdown();
 
 private:

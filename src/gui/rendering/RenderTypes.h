@@ -1,6 +1,6 @@
 #pragma once
 
-#include "CameraController.h"
+#include "gui/input/CameraController.h"
 
 namespace gui {
 

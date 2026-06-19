@@ -1,9 +1,15 @@
 #pragma once
 
 #include "AppMode.h"
-#include "CameraController.h"
-#include "OpenGLRenderer.h"
-#include "SceneEditor.h"
+#include "composition/GuiServices.h"
+#include "entities/GuiScenario.h"
+#include "entities/GuiSelection.h"
+#include "input/CameraController.h"
+#include "input/InputState.h"
+#include "rendering/GuiScenarioRenderMapper.h"
+#include "rendering/OpenGLRenderer.h"
+#include "screens/preparation/PreparationScreen.h"
+#include "screens/simulation/SimulationScreen.h"
 
 struct GLFWwindow;
 
@@ -11,7 +17,7 @@ namespace gui {
 
 class App {
 public:
-    App() = default;
+    App();
     ~App();
 
     App(const App&) = delete;
@@ -25,24 +31,21 @@ private:
 
     void resize(int width, int height);
     void processInput();
-    void processPreparationInput(float deltaTime);
     void toggleMode();
     void startSimulation();
     void updateWindowTitle();
 
-    bool isKeyPressedOnce(int key, bool& previousState) const;
-
     GLFWwindow* window_ = nullptr;
+    GuiServices services_;
+    GuiSelection selection_;
+    GuiScenario scenario_;
+    PreparationScreen preparationScreen_;
+    SimulationScreen simulationScreen_;
+    GuiScenarioRenderMapper renderMapper_;
+    InputState input_;
     CameraController camera_;
-    SceneEditor sceneEditor_;
     OpenGLRenderer renderer_;
     AppMode mode_ = AppMode::Preparation;
-    bool simulationStarted_ = false;
-    bool tabWasPressed_ = false;
-    bool enterWasPressed_ = false;
-    bool pWasPressed_ = false;
-    bool bWasPressed_ = false;
-    bool cWasPressed_ = false;
 };
 
 }  // namespace gui
