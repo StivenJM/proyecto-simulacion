@@ -2,6 +2,7 @@
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <imgui.h>
 
 #include "composition/GuiComposition.h"
 
@@ -19,6 +20,7 @@ App::App()
 
 App::~App()
 {
+    imguiLayer_.shutdown();
     renderer_.shutdown();
 
     if (window_ != nullptr) {
@@ -62,7 +64,11 @@ bool App::initialize()
     std::cout << "Controls: Tab switches Preparation/Simulation mode, Enter starts simulation mode, Esc closes.\n";
     std::cout << "Preparation: P adds a rectangular plane, B adds a room, C selects next plane, I/K/J/L/U/O moves selected plane.\n";
     std::cout << "Point planes: N starts draft, M adds cursor point, I/K/J/L/U/O moves draft cursor, F finalizes, V edits selected plane, X cancels draft.\n";
-    return renderer_.initialize();
+    if (!renderer_.initialize()) {
+        return false;
+    }
+
+    return imguiLayer_.initialize(window_);
 }
 
 void App::run()
@@ -75,17 +81,30 @@ void App::run()
         previousTime = currentTime;
 
         input_.update(window_);
-        processInput();
-        if (mode_ == AppMode::Preparation && preparationScreen_.handleInput(input_, deltaTime)) {
+        const bool imguiWantsKeyboard = ImGui::GetCurrentContext() != nullptr && ImGui::GetIO().WantCaptureKeyboard;
+        processInput(imguiWantsKeyboard);
+
+        imguiLayer_.beginFrame();
+        if (mode_ == AppMode::Preparation) {
+            sceneHierarchyPanel_.render(preparationScreen_);
+            planeEditorPanel_.render(preparationScreen_);
+        }
+
+        if (!imguiWantsKeyboard && mode_ == AppMode::Preparation && preparationScreen_.handleInput(input_, deltaTime)) {
             updateWindowTitle();
         }
-        camera_.update(window_, deltaTime);
+
+        if (!imguiWantsKeyboard) {
+            camera_.update(window_, deltaTime);
+        }
+
         renderer_.render(
             camera_.viewProjectionMatrix(),
             renderMapper_.buildLineVertices(scenario_, selection_, preparationScreen_.draft()),
             mode_,
             simulationScreen_.isStarted()
         );
+        imguiLayer_.render();
 
         glfwSwapBuffers(window_);
         glfwPollEvents();
@@ -106,10 +125,14 @@ void App::resize(int width, int height)
     camera_.setViewport(width, height);
 }
 
-void App::processInput()
+void App::processInput(bool imguiWantsKeyboard)
 {
     if (input_.isDown(GLFW_KEY_ESCAPE)) {
         glfwSetWindowShouldClose(window_, true);
+    }
+
+    if (imguiWantsKeyboard) {
+        return;
     }
 
     if (input_.wasPressed(GLFW_KEY_TAB)) {
@@ -150,7 +173,7 @@ void App::updateWindowTitle()
 {
     std::string title = "Acoustic Simulator - ";
     if (mode_ == AppMode::Preparation) {
-        title += "Preparation Mode [Plane " + std::to_string(preparationScreen_.selectedPlaneId()) + "] [N: Draft] [M: Point] [F: Finish] [V: Edit] [Tab: Simulation]";
+        title += "Preparation Mode [Plane " + std::to_string(preparationScreen_.selectedPlaneId()) + "] [Tab: Simulation]";
     } else if (simulationScreen_.isStarted()) {
         title += "Simulation Mode - Running [Tab: Preparation]";
     } else {

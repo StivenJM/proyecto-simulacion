@@ -1,6 +1,6 @@
-# Guía de instalación de OpenGL en Windows (VS Code + MSVC + CMake + vcpkg)
+# Guía de instalación del proyecto en Windows (VS Code + MSVC + CMake + vcpkg)
 
-Esta guía permite configurar un entorno moderno para seguir los tutoriales de LearnOpenGL utilizando:
+Esta guía permite configurar desde cero el entorno necesario para compilar y ejecutar el simulador acústico 3D utilizando:
 
 * VS Code
 * Visual Studio Build Tools
@@ -9,6 +9,7 @@ Esta guía permite configurar un entorno moderno para seguir los tutoriales de L
 * vcpkg
 * GLFW
 * GLAD
+* Dear ImGui
 
 ---
 
@@ -31,6 +32,7 @@ Se instalarán mediante vcpkg:
 
 * GLFW
 * GLAD
+* Dear ImGui con bindings para GLFW y OpenGL 3
 
 ## Extensiones de VS Code
 
@@ -114,10 +116,24 @@ Generar el ejecutable:
 bootstrap-vcpkg.bat
 ```
 
-Instalar las dependencias necesarias para OpenGL:
+Instalar las dependencias necesarias para OpenGL e interfaz gráfica:
 
 ```powershell
-.\vcpkg.exe install glfw3:x64-windows glad:x64-windows
+.\vcpkg.exe install glfw3:x64-windows glad:x64-windows "imgui[glfw-binding,opengl3-binding]:x64-windows"
+```
+
+Verificar que quedaron instaladas:
+
+```powershell
+.\vcpkg.exe list
+```
+
+La salida debe incluir, al menos:
+
+```text
+glfw3:x64-windows
+glad:x64-windows
+imgui:x64-windows
 ```
 
 ---
@@ -159,12 +175,12 @@ terminal.integrated.profiles.windows
 
 ---
 
-# 7. Primer proyecto OpenGL
+# 7. Configuración CMake del proyecto
 
-## Estructura
+## Estructura mínima esperada
 
 ```text
-HelloWindow/
+Proyecto/
 ├─ CMakeLists.txt
 └─ src/
    └─ main.cpp
@@ -177,22 +193,25 @@ HelloWindow/
 ```cmake
 cmake_minimum_required(VERSION 3.20)
 
-project(HelloWindow)
+project(AcousticSimulator)
 
 set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(glfw3 CONFIG REQUIRED)
 find_package(glad CONFIG REQUIRED)
+find_package(imgui CONFIG REQUIRED)
 find_package(OpenGL REQUIRED)
 
-add_executable(HelloWindow
+add_executable(AcousticSimulator
     src/main.cpp
 )
 
-target_link_libraries(HelloWindow
+target_link_libraries(AcousticSimulator
     PRIVATE
     glfw
     glad::glad
+    imgui::imgui
     OpenGL::GL
 )
 ```
@@ -201,7 +220,7 @@ target_link_libraries(HelloWindow
 
 ## Archivo main.cpp
 
-(Código del ejemplo Hello Window de LearnOpenGL)
+El punto de entrada del proyecto debe crear la aplicación GUI y ejecutar el loop principal. El detalle de ventana, OpenGL e ImGui vive dentro de la capa GUI del proyecto.
 
 ---
 
@@ -232,13 +251,13 @@ cmake --build build --config Release
 Modo Debug:
 
 ```text
-.\build\Debug\HelloWindow.exe
+.\build\Debug\AcousticSimulator.exe
 ```
 
 Modo Release:
 
 ```text
-.\build\Release\HelloWindow.exe
+.\build\Release\AcousticSimulator.exe
 ```
 
 ---

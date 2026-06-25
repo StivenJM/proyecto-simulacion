@@ -73,33 +73,17 @@ bool PreparationScreen::handleInput(const InputState& input, float deltaTime)
     bool titleChanged = false;
 
     if (PlaneEditorControls::newDraftPressed(input)) {
-        draft_ = {};
-        draft_.active = true;
-        if (const GuiPlane* selectedPlane = findSelectedPlane(scenario_, selection_.selectedPlaneId)) {
-            draft_.cursor = selectedPlane->center;
-        }
+        startDraft();
         titleChanged = true;
-        std::cout << "Started a new point-based plane draft. Move cursor with I/K/J/L/U/O, M adds a point, F finalizes.\n";
     }
 
     if (PlaneEditorControls::editSelectedPressed(input)) {
-        if (const GuiPlane* selectedPlane = findSelectedPlane(scenario_, selection_.selectedPlaneId)) {
-            draft_ = {};
-            draft_.active = true;
-            draft_.editingPlaneId = selectedPlane->id;
-            draft_.points = rectanglePointsForPlane(*selectedPlane);
-            draft_.cursor = draft_.points.empty() ? selectedPlane->center : draft_.points.back();
-            titleChanged = true;
-            std::cout << "Editing plane " << selectedPlane->id << " as a point draft.\n";
-        } else {
-            std::cout << "Select a plane before editing.\n";
-        }
+        titleChanged = editSelectedPlane();
     }
 
     if (PlaneEditorControls::cancelDraftPressed(input) && draft_.active) {
-        draft_ = {};
+        cancelDraft();
         titleChanged = true;
-        std::cout << "Cancelled plane draft.\n";
     }
 
     const Vec3 delta = PlaneEditorControls::movementDelta(input, deltaTime);
@@ -108,44 +92,30 @@ bool PreparationScreen::handleInput(const InputState& input, float deltaTime)
     }
 
     if (PlaneEditorControls::addDraftPointPressed(input) && draft_.active) {
-        draft_.points.push_back(draft_.cursor);
+        addDraftPoint();
         titleChanged = true;
-        std::cout << "Added draft point " << draft_.points.size() << ". A valid plane needs at least 3 points.\n";
     }
 
     if (PlaneEditorControls::finalizeDraftPressed(input) && draft_.active) {
-        if (!draft_.canFinalize()) {
-            std::cout << "Plane draft needs at least 3 points before finalizing.\n";
-        } else if (draft_.isEditingExistingPlane()) {
-            if (planeService_.updatePlanePoints(scenario_, selection_, draft_.editingPlaneId, draft_.points)) {
-                std::cout << "Updated plane " << selection_.selectedPlaneId << " from point draft.\n";
-                draft_ = {};
-                titleChanged = true;
-            }
-        } else {
-            planeService_.addPlaneFromPoints(scenario_, selection_, draft_.points);
-            std::cout << "Created point-based plane " << selection_.selectedPlaneId << ".\n";
-            draft_ = {};
-            titleChanged = true;
-        }
+        titleChanged = finalizeDraft();
     }
 
     if (PlaneEditorControls::addPlanePressed(input)) {
-        planeService_.addPlane(scenario_, selection_);
+        addDefaultPlane();
         titleChanged = true;
-        std::cout << "Added plane " << selection_.selectedPlaneId << ".\n";
+        std::cout << "Added plane " << selection_.selectedPlaneId() << ".\n";
     }
 
     if (PlaneEditorControls::addRoomPressed(input)) {
         planeService_.addRoom(scenario_, selection_);
         titleChanged = true;
-        std::cout << "Added room planes. Selected plane " << selection_.selectedPlaneId << ".\n";
+        std::cout << "Added room planes. Selected plane " << selection_.selectedPlaneId() << ".\n";
     }
 
     if (PlaneEditorControls::selectNextPressed(input)) {
         planeService_.selectNext(scenario_, selection_);
         titleChanged = true;
-        std::cout << "Selected plane " << selection_.selectedPlaneId << ".\n";
+        std::cout << "Selected plane " << selection_.selectedPlaneId() << ".\n";
     }
 
     if (!draft_.active && (delta.x != 0.0f || delta.y != 0.0f || delta.z != 0.0f)) {
@@ -155,9 +125,167 @@ bool PreparationScreen::handleInput(const InputState& input, float deltaTime)
     return titleChanged;
 }
 
+void PreparationScreen::startDraft()
+{
+    draft_ = {};
+    draft_.active = true;
+    if (const GuiPlane* selectedPlane = findSelectedPlane(scenario_, selection_.selectedPlaneId())) {
+        draft_.cursor = selectedPlane->center;
+    }
+    std::cout << "Started a new point-based plane draft. Move cursor with I/K/J/L/U/O, M adds a point, F finalizes.\n";
+}
+
+void PreparationScreen::addDraftPoint()
+{
+    if (!draft_.active) {
+        return;
+    }
+
+    draft_.points.push_back(draft_.cursor);
+    std::cout << "Added draft point " << draft_.points.size() << ". A valid plane needs at least 3 points.\n";
+}
+
+bool PreparationScreen::finalizeDraft()
+{
+    if (!draft_.active) {
+        return false;
+    }
+
+    if (!draft_.canFinalize()) {
+        std::cout << "Plane draft needs at least 3 points before finalizing.\n";
+        return false;
+    }
+
+    if (draft_.isEditingExistingPlane()) {
+        if (planeService_.updatePlanePoints(scenario_, selection_, draft_.editingPlaneId, draft_.points)) {
+            std::cout << "Updated plane " << selection_.selectedPlaneId() << " from point draft.\n";
+            draft_ = {};
+            return true;
+        }
+
+        return false;
+    }
+
+    planeService_.addPlaneFromPoints(scenario_, selection_, draft_.points);
+    std::cout << "Created point-based plane " << selection_.selectedPlaneId() << ".\n";
+    draft_ = {};
+    return true;
+}
+
+bool PreparationScreen::editSelectedPlane()
+{
+    if (const GuiPlane* selectedPlane = findSelectedPlane(scenario_, selection_.selectedPlaneId())) {
+        draft_ = {};
+        draft_.active = true;
+        draft_.editingPlaneId = selectedPlane->id;
+        draft_.points = rectanglePointsForPlane(*selectedPlane);
+        draft_.cursor = draft_.points.empty() ? selectedPlane->center : draft_.points.back();
+        std::cout << "Editing plane " << selectedPlane->id << " as a point draft.\n";
+        return true;
+    }
+
+    std::cout << "Select a plane before editing.\n";
+    return false;
+}
+
+void PreparationScreen::cancelDraft()
+{
+    if (!draft_.active) {
+        return;
+    }
+
+    draft_ = {};
+    std::cout << "Cancelled plane draft.\n";
+}
+
+void PreparationScreen::setDraftCursor(Vec3 cursor)
+{
+    draft_.cursor = cursor;
+}
+
+Vec3 PreparationScreen::draftCursor() const
+{
+    return draft_.cursor;
+}
+
+std::size_t PreparationScreen::draftPointCount() const
+{
+    return draft_.points.size();
+}
+
+bool PreparationScreen::canFinalizeDraft() const
+{
+    return draft_.canFinalize();
+}
+
+bool PreparationScreen::hasActiveDraft() const
+{
+    return draft_.active;
+}
+
 int PreparationScreen::selectedPlaneId() const
 {
-    return selection_.selectedPlaneId;
+    return selection_.selectedPlaneId();
+}
+
+void PreparationScreen::selectPlane(int planeId)
+{
+    selection_.selectPlane(planeId);
+}
+
+GuiScenario& PreparationScreen::scenario()
+{
+    return scenario_;
+}
+
+const GuiScenario& PreparationScreen::scenario() const
+{
+    return scenario_;
+}
+
+GuiSelection& PreparationScreen::selection()
+{
+    return selection_;
+}
+
+const GuiPlane* PreparationScreen::selectedPlane() const
+{
+    return findSelectedPlane(scenario_, selection_.selectedPlaneId());
+}
+
+void PreparationScreen::addDefaultPlane()
+{
+    planeService_.addPlane(scenario_, selection_);
+}
+
+bool PreparationScreen::updateSelectedPlanePoint(std::size_t pointIndex, Vec3 point)
+{
+    return planeService_.updatePlanePoint(scenario_, selection_, selectedPlaneId(), pointIndex, point);
+}
+
+bool PreparationScreen::updateSelectedPlaneName(const std::string& name)
+{
+    return planeService_.updatePlaneName(scenario_, selectedPlaneId(), name);
+}
+
+bool PreparationScreen::updateSelectedPlaneAbsorption(float absorption)
+{
+    return planeService_.updatePlaneAbsorption(scenario_, selectedPlaneId(), absorption);
+}
+
+bool PreparationScreen::updateSelectedPlaneVisibility(bool visible)
+{
+    return planeService_.updatePlaneVisibility(scenario_, selectedPlaneId(), visible);
+}
+
+bool PreparationScreen::updateSelectedPlaneColor(Vec3 color)
+{
+    return planeService_.updatePlaneColor(scenario_, selectedPlaneId(), color);
+}
+
+bool PreparationScreen::updateSelectedPlaneMaterial(int materialId)
+{
+    return planeService_.updatePlaneMaterial(scenario_, selectedPlaneId(), materialId);
 }
 
 const GuiPlaneDraft& PreparationScreen::draft() const

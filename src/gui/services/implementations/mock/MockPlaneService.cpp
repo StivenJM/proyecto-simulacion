@@ -1,7 +1,17 @@
 #include "MockPlaneService.h"
 
+#include <cmath>
+#include <string>
+
 namespace gui {
 namespace {
+
+float clamp01(float value)
+{
+    if (value < 0.0f) return 0.0f;
+    if (value > 1.0f) return 1.0f;
+    return value;
+}
 
 Vec3 averagePoint(const std::vector<Vec3>& points)
 {
@@ -18,6 +28,98 @@ Vec3 averagePoint(const std::vector<Vec3>& points)
 
     const float count = static_cast<float>(points.size());
     return {center.x / count, center.y / count, center.z / count};
+}
+
+float length(Vec3 value)
+{
+    return std::sqrt(value.x * value.x + value.y * value.y + value.z * value.z);
+}
+
+Vec3 cross(Vec3 a, Vec3 b)
+{
+    return {
+        a.y * b.z - a.z * b.y,
+        a.z * b.x - a.x * b.z,
+        a.x * b.y - a.y * b.x,
+    };
+}
+
+float polygonArea(const std::vector<Vec3>& points)
+{
+    if (points.size() < 3) {
+        return 0.0f;
+    }
+
+    Vec3 sum{0.0f, 0.0f, 0.0f};
+    for (std::size_t index = 0; index < points.size(); ++index) {
+        const Vec3& current = points[index];
+        const Vec3& next = points[(index + 1) % points.size()];
+        const Vec3 edgeCross = cross(current, next);
+        sum.x += edgeCross.x;
+        sum.y += edgeCross.y;
+        sum.z += edgeCross.z;
+    }
+
+    return length(sum) * 0.5f;
+}
+
+float planeArea(const GuiPlane& plane)
+{
+    if (plane.outlinePoints.size() >= 3) {
+        return polygonArea(plane.outlinePoints);
+    }
+
+    return plane.width * plane.height;
+}
+
+std::vector<Vec3> rectanglePoints(Vec3 center, float width, float height, PlaneOrientation orientation)
+{
+    const float halfWidth = width / 2.0f;
+    const float halfHeight = height / 2.0f;
+
+    if (orientation == PlaneOrientation::Horizontal) {
+        return {
+            {center.x - halfWidth, center.y, center.z - halfHeight},
+            {center.x + halfWidth, center.y, center.z - halfHeight},
+            {center.x + halfWidth, center.y, center.z + halfHeight},
+            {center.x - halfWidth, center.y, center.z + halfHeight},
+        };
+    }
+
+    if (orientation == PlaneOrientation::VerticalX) {
+        return {
+            {center.x, center.y - halfHeight, center.z - halfWidth},
+            {center.x, center.y - halfHeight, center.z + halfWidth},
+            {center.x, center.y + halfHeight, center.z + halfWidth},
+            {center.x, center.y + halfHeight, center.z - halfWidth},
+        };
+    }
+
+    return {
+        {center.x - halfWidth, center.y - halfHeight, center.z},
+        {center.x + halfWidth, center.y - halfHeight, center.z},
+        {center.x + halfWidth, center.y + halfHeight, center.z},
+        {center.x - halfWidth, center.y + halfHeight, center.z},
+    };
+}
+
+void refreshDerivedPlaneData(GuiPlane& plane)
+{
+    if (plane.outlinePoints.size() >= 3) {
+        plane.center = averagePoint(plane.outlinePoints);
+    }
+    plane.area = planeArea(plane);
+}
+
+GuiPlane* findPlane(GuiScenario& scenario, int planeId)
+{
+    for (GuiPlane& plane : scenario.planes) {
+        if (plane.id == planeId) {
+            return &plane;
+        }
+    }
+
+    return nullptr;
 }
 
 }  // namespace
@@ -45,8 +147,30 @@ void MockPlaneService::addPlaneFromPoints(GuiScenario& scenario, GuiSelection& s
     }
 
     const int id = scenario.nextPlaneId++;
-    scenario.planes.push_back({id, averagePoint(points), 1.0f, 1.0f, PlaneOrientation::Horizontal, 0.0f, points});
-    selection.selectedPlaneId = id;
+    GuiPlane plane;
+    plane.id = id;
+    plane.center = averagePoint(points);
+    plane.outlinePoints = points;
+    plane.name = "Plane " + std::to_string(id);
+    refreshDerivedPlaneData(plane);
+    scenario.planes.push_back(plane);
+    selection.selectPlane(id);
+}
+
+bool MockPlaneService::updatePlanePoint(GuiScenario& scenario, GuiSelection& selection, int planeId, std::size_t pointIndex, Vec3 point)
+{
+    if (GuiPlane* plane = findPlane(scenario, planeId)) {
+        if (plane->outlinePoints.size() < 3 || pointIndex >= plane->outlinePoints.size()) {
+            return false;
+        }
+
+        plane->outlinePoints[pointIndex] = point;
+        refreshDerivedPlaneData(*plane);
+        selection.selectPlane(planeId);
+        return true;
+    }
+
+    return false;
 }
 
 bool MockPlaneService::updatePlanePoints(GuiScenario& scenario, GuiSelection& selection, int planeId, const std::vector<Vec3>& points)
@@ -55,13 +179,61 @@ bool MockPlaneService::updatePlanePoints(GuiScenario& scenario, GuiSelection& se
         return false;
     }
 
-    for (GuiPlane& plane : scenario.planes) {
-        if (plane.id == planeId) {
-            plane.outlinePoints = points;
-            plane.center = averagePoint(points);
-            selection.selectedPlaneId = planeId;
-            return true;
-        }
+    if (GuiPlane* plane = findPlane(scenario, planeId)) {
+        plane->outlinePoints = points;
+        refreshDerivedPlaneData(*plane);
+        selection.selectPlane(planeId);
+        return true;
+    }
+
+    return false;
+}
+
+bool MockPlaneService::updatePlaneName(GuiScenario& scenario, int planeId, const std::string& name)
+{
+    if (GuiPlane* plane = findPlane(scenario, planeId)) {
+        plane->name = name;
+        return true;
+    }
+
+    return false;
+}
+
+bool MockPlaneService::updatePlaneAbsorption(GuiScenario& scenario, int planeId, float absorption)
+{
+    if (GuiPlane* plane = findPlane(scenario, planeId)) {
+        plane->absorption = clamp01(absorption);
+        return true;
+    }
+
+    return false;
+}
+
+bool MockPlaneService::updatePlaneVisibility(GuiScenario& scenario, int planeId, bool visible)
+{
+    if (GuiPlane* plane = findPlane(scenario, planeId)) {
+        plane->visible = visible;
+        return true;
+    }
+
+    return false;
+}
+
+bool MockPlaneService::updatePlaneColor(GuiScenario& scenario, int planeId, Vec3 color)
+{
+    if (GuiPlane* plane = findPlane(scenario, planeId)) {
+        plane->color = {clamp01(color.x), clamp01(color.y), clamp01(color.z)};
+        return true;
+    }
+
+    return false;
+}
+
+bool MockPlaneService::updatePlaneMaterial(GuiScenario& scenario, int planeId, int materialId)
+{
+    if (GuiPlane* plane = findPlane(scenario, planeId)) {
+        plane->materialId = materialId;
+        return true;
     }
 
     return false;
@@ -70,25 +242,25 @@ bool MockPlaneService::updatePlanePoints(GuiScenario& scenario, GuiSelection& se
 void MockPlaneService::selectNext(const GuiScenario& scenario, GuiSelection& selection)
 {
     if (scenario.planes.empty()) {
-        selection.selectedPlaneId = 0;
+        selection.clear();
         return;
     }
 
     for (std::size_t index = 0; index < scenario.planes.size(); ++index) {
-        if (scenario.planes[index].id == selection.selectedPlaneId) {
+        if (scenario.planes[index].id == selection.selectedPlaneId()) {
             const std::size_t nextIndex = (index + 1) % scenario.planes.size();
-            selection.selectedPlaneId = scenario.planes[nextIndex].id;
+            selection.selectPlane(scenario.planes[nextIndex].id);
             return;
         }
     }
 
-    selection.selectedPlaneId = scenario.planes.front().id;
+    selection.selectPlane(scenario.planes.front().id);
 }
 
 void MockPlaneService::moveSelected(GuiScenario& scenario, const GuiSelection& selection, Vec3 delta)
 {
     for (GuiPlane& plane : scenario.planes) {
-        if (plane.id == selection.selectedPlaneId) {
+        if (plane.id == selection.selectedPlaneId()) {
             plane.center.x += delta.x;
             plane.center.y += delta.y;
             plane.center.z += delta.z;
@@ -112,8 +284,19 @@ void MockPlaneService::addPlane(
 )
 {
     const int id = scenario.nextPlaneId++;
-    scenario.planes.push_back({id, center, width, height, orientation, 0.0f, {}});
-    selection.selectedPlaneId = id;
+    GuiPlane plane;
+    plane.id = id;
+    plane.center = center;
+    plane.width = width;
+    plane.height = height;
+    plane.orientation = orientation;
+    plane.name = "Plane " + std::to_string(id);
+    plane.visible = true;
+    plane.absorption = 0.0f;
+    plane.outlinePoints = rectanglePoints(center, width, height, orientation);
+    refreshDerivedPlaneData(plane);
+    scenario.planes.push_back(plane);
+    selection.selectPlane(id);
 }
 
 }  // namespace gui

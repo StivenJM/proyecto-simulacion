@@ -2,6 +2,7 @@
 
 #include "gui/input/CameraController.h"
 
+#include <string>
 #include <vector>
 
 namespace gui {
@@ -20,6 +21,11 @@ struct GuiPlane {
     PlaneOrientation orientation = PlaneOrientation::Horizontal;
     float absorption = 0.0f;
     std::vector<Vec3> outlinePoints;
+    std::string name;
+    bool visible = true;
+    Vec3 color{0.72f, 0.78f, 0.86f};
+    float area = 1.0f;
+    int materialId = 0;
 };
 
 }  // namespace gui

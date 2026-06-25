@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(glfw3 CONFIG REQUIRED)
 find_package(glad CONFIG REQUIRED)
+find_package(imgui CONFIG REQUIRED)
 find_package(OpenGL REQUIRED)
 
 add_executable(AcousticSimulator
@@ -39,14 +40,22 @@ add_executable(AcousticSimulator
     src/gui/rendering/OpenGLRenderer.cpp
     src/gui/rendering/OpenGLRenderer.h
     src/gui/rendering/RenderTypes.h
+    src/gui/ui/ImGuiLayer.cpp
+    src/gui/ui/ImGuiLayer.h
     src/gui/screens/components/AxisGizmo.cpp
     src/gui/screens/components/AxisGizmo.h
     src/gui/screens/preparation/PreparationScreen.cpp
     src/gui/screens/preparation/PreparationScreen.h
     src/gui/screens/preparation/components/PlaneEditorControls.cpp
     src/gui/screens/preparation/components/PlaneEditorControls.h
-    src/gui/screens/preparation/components/PreparationSidePanel.cpp
-    src/gui/screens/preparation/components/PreparationSidePanel.h
+    src/gui/screens/preparation/components/SceneHierarchyPanel.cpp
+    src/gui/screens/preparation/components/SceneHierarchyPanel.h
+    src/gui/screens/preparation/components/PlaneCreationPanel.cpp
+    src/gui/screens/preparation/components/PlaneCreationPanel.h
+    src/gui/screens/preparation/components/PlanePropertiesPanel.cpp
+    src/gui/screens/preparation/components/PlanePropertiesPanel.h
+    src/gui/screens/preparation/components/PlaneEditorPanel.cpp
+    src/gui/screens/preparation/components/PlaneEditorPanel.h
     src/gui/screens/simulation/SimulationScreen.cpp
     src/gui/screens/simulation/SimulationScreen.h
     src/gui/services/IPlaneService.h
@@ -74,5 +83,6 @@ target_link_libraries(AcousticSimulator
     PRIVATE
     glfw
     glad::glad
+    imgui::imgui
     OpenGL::GL
 )

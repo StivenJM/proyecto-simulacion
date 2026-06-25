@@ -8,8 +8,11 @@
 #include "input/InputState.h"
 #include "rendering/GuiScenarioRenderMapper.h"
 #include "rendering/OpenGLRenderer.h"
+#include "screens/preparation/components/SceneHierarchyPanel.h"
+#include "screens/preparation/components/PlaneEditorPanel.h"
 #include "screens/preparation/PreparationScreen.h"
 #include "screens/simulation/SimulationScreen.h"
+#include "ui/ImGuiLayer.h"
 
 struct GLFWwindow;
 
@@ -30,7 +33,7 @@ private:
     static void onFramebufferResize(GLFWwindow* window, int width, int height);
 
     void resize(int width, int height);
-    void processInput();
+    void processInput(bool imguiWantsKeyboard);
     void toggleMode();
     void startSimulation();
     void updateWindowTitle();
@@ -45,6 +48,9 @@ private:
     InputState input_;
     CameraController camera_;
     OpenGLRenderer renderer_;
+    ImGuiLayer imguiLayer_;
+    SceneHierarchyPanel sceneHierarchyPanel_;
+    PlaneEditorPanel planeEditorPanel_;
     AppMode mode_ = AppMode::Preparation;
 };
 

@@ -1,7 +1,6 @@
 #include "GuiScenarioRenderMapper.h"
 
 #include "gui/screens/components/AxisGizmo.h"
-#include "gui/screens/preparation/components/PreparationSidePanel.h"
 
 namespace gui {
 namespace {
@@ -14,7 +13,11 @@ void addLine(std::vector<LineVertex>& vertices, Vec3 from, Vec3 to, Vec3 color)
 
 void appendPlaneLines(std::vector<LineVertex>& vertices, const GuiPlane& plane, bool selected)
 {
-    const Vec3 color = selected ? Vec3{1.0f, 0.86f, 0.18f} : Vec3{0.72f, 0.78f, 0.86f};
+    if (!plane.visible) {
+        return;
+    }
+
+    const Vec3 color = selected ? Vec3{1.0f, 0.86f, 0.18f} : plane.color;
 
     if (plane.outlinePoints.size() >= 3) {
         for (std::size_t index = 0; index < plane.outlinePoints.size(); ++index) {
@@ -110,12 +113,11 @@ std::vector<LineVertex> GuiScenarioRenderMapper::buildLineVertices(const GuiScen
     vertices.reserve(scenario.planes.size() * 12 + draft.points.size() * 8 + 32);
 
     for (const GuiPlane& plane : scenario.planes) {
-        appendPlaneLines(vertices, plane, plane.id == selection.selectedPlaneId);
+        appendPlaneLines(vertices, plane, plane.id == selection.selectedPlaneId());
     }
 
     appendDraftLines(vertices, draft);
     AxisGizmo::appendLines(vertices);
-    PreparationSidePanel::appendLines(vertices, draft, selection.selectedPlaneId);
     return vertices;
 }
 
