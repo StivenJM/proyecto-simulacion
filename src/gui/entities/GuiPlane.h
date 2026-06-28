@@ -25,7 +25,6 @@ struct GuiPlane {
     bool visible = true;
     Vec3 color{0.72f, 0.78f, 0.86f};
     float area = 1.0f;
-    int materialId = 0;
 };
 
 }  // namespace gui

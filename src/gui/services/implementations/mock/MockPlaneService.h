@@ -15,7 +15,6 @@ public:
     bool updatePlaneAbsorption(GuiScenario& scenario, int planeId, float absorption) override;
     bool updatePlaneVisibility(GuiScenario& scenario, int planeId, bool visible) override;
     bool updatePlaneColor(GuiScenario& scenario, int planeId, Vec3 color) override;
-    bool updatePlaneMaterial(GuiScenario& scenario, int planeId, int materialId) override;
     void selectNext(const GuiScenario& scenario, GuiSelection& selection) override;
     void moveSelected(GuiScenario& scenario, const GuiSelection& selection, Vec3 delta) override;
 

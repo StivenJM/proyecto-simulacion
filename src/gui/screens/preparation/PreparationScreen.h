@@ -38,7 +38,6 @@ public:
     bool updateSelectedPlaneAbsorption(float absorption);
     bool updateSelectedPlaneVisibility(bool visible);
     bool updateSelectedPlaneColor(Vec3 color);
-    bool updateSelectedPlaneMaterial(int materialId);
     const GuiPlaneDraft& draft() const;
 
 private:

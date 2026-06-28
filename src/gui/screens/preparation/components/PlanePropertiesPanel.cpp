@@ -2,7 +2,6 @@
 
 #include "gui/screens/preparation/PreparationScreen.h"
 
-#include <algorithm>
 #include <cstring>
 #include <imgui.h>
 #include <string>
@@ -53,11 +52,6 @@ void PlanePropertiesPanel::render(PreparationScreen& screen)
     float color[3] = {plane->color.x, plane->color.y, plane->color.z};
     if (ImGui::ColorEdit3("Color", color)) {
         screen.updateSelectedPlaneColor({color[0], color[1], color[2]});
-    }
-
-    int materialId = plane->materialId;
-    if (ImGui::InputInt("Material ID", &materialId)) {
-        screen.updateSelectedPlaneMaterial(std::max(0, materialId));
     }
 
     ImGui::Text("Area: %.2f m2", plane->area);

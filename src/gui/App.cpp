@@ -100,7 +100,7 @@ void App::run()
 
         renderer_.render(
             camera_.viewProjectionMatrix(),
-            renderMapper_.buildLineVertices(scenario_, selection_, preparationScreen_.draft()),
+            renderMapper_.buildRenderScene(scenario_, selection_, preparationScreen_.draft()),
             mode_,
             simulationScreen_.isStarted()
         );

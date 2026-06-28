@@ -229,16 +229,6 @@ bool MockPlaneService::updatePlaneColor(GuiScenario& scenario, int planeId, Vec3
     return false;
 }
 
-bool MockPlaneService::updatePlaneMaterial(GuiScenario& scenario, int planeId, int materialId)
-{
-    if (GuiPlane* plane = findPlane(scenario, planeId)) {
-        plane->materialId = materialId;
-        return true;
-    }
-
-    return false;
-}
-
 void MockPlaneService::selectNext(const GuiScenario& scenario, GuiSelection& selection)
 {
     if (scenario.planes.empty()) {

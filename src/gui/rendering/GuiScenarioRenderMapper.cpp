@@ -69,6 +69,21 @@ void appendPlaneLines(std::vector<LineVertex>& vertices, const GuiPlane& plane, 
     }
 }
 
+void appendPlaneFill(std::vector<ColoredVertex>& vertices, const GuiPlane& plane)
+{
+    if (!plane.visible || plane.outlinePoints.size() < 3) {
+        return;
+    }
+
+    const ColorRgba color{plane.color.x, plane.color.y, plane.color.z, 0.30f};
+    const Vec3 origin = plane.outlinePoints.front();
+    for (std::size_t index = 1; index + 1 < plane.outlinePoints.size(); ++index) {
+        vertices.push_back({origin, color});
+        vertices.push_back({plane.outlinePoints[index], color});
+        vertices.push_back({plane.outlinePoints[index + 1], color});
+    }
+}
+
 void appendPointMarker(std::vector<LineVertex>& vertices, Vec3 point, Vec3 color)
 {
     constexpr float size = 0.06f;
@@ -109,16 +124,23 @@ void appendDraftLines(std::vector<LineVertex>& vertices, const GuiPlaneDraft& dr
 
 std::vector<LineVertex> GuiScenarioRenderMapper::buildLineVertices(const GuiScenario& scenario, const GuiSelection& selection, const GuiPlaneDraft& draft) const
 {
-    std::vector<LineVertex> vertices;
-    vertices.reserve(scenario.planes.size() * 12 + draft.points.size() * 8 + 32);
+    return buildRenderScene(scenario, selection, draft).lineVertices;
+}
+
+RenderScene GuiScenarioRenderMapper::buildRenderScene(const GuiScenario& scenario, const GuiSelection& selection, const GuiPlaneDraft& draft) const
+{
+    RenderScene scene;
+    scene.fillVertices.reserve(scenario.planes.size() * 6);
+    scene.lineVertices.reserve(scenario.planes.size() * 12 + draft.points.size() * 8 + 32);
 
     for (const GuiPlane& plane : scenario.planes) {
-        appendPlaneLines(vertices, plane, plane.id == selection.selectedPlaneId());
+        appendPlaneFill(scene.fillVertices, plane);
+        appendPlaneLines(scene.lineVertices, plane, plane.id == selection.selectedPlaneId());
     }
 
-    appendDraftLines(vertices, draft);
-    AxisGizmo::appendLines(vertices);
-    return vertices;
+    appendDraftLines(scene.lineVertices, draft);
+    AxisGizmo::appendLines(scene.lineVertices);
+    return scene;
 }
 
 }  // namespace gui

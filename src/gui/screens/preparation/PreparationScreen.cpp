@@ -283,11 +283,6 @@ bool PreparationScreen::updateSelectedPlaneColor(Vec3 color)
     return planeService_.updatePlaneColor(scenario_, selectedPlaneId(), color);
 }
 
-bool PreparationScreen::updateSelectedPlaneMaterial(int materialId)
-{
-    return planeService_.updatePlaneMaterial(scenario_, selectedPlaneId(), materialId);
-}
-
 const GuiPlaneDraft& PreparationScreen::draft() const
 {
     return draft_;

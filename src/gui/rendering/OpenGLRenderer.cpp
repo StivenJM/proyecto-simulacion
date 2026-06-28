@@ -10,11 +10,11 @@ namespace {
 constexpr const char* vertexShaderSource = R"glsl(
 #version 330 core
 layout (location = 0) in vec3 aPosition;
-layout (location = 1) in vec3 aColor;
+layout (location = 1) in vec4 aColor;
 
 uniform mat4 uViewProjection;
 
-out vec3 vColor;
+out vec4 vColor;
 
 void main()
 {
@@ -25,12 +25,12 @@ void main()
 
 constexpr const char* fragmentShaderSource = R"glsl(
 #version 330 core
-in vec3 vColor;
+in vec4 vColor;
 out vec4 FragColor;
 
 void main()
 {
-    FragColor = vec4(vColor, 1.0);
+    FragColor = vColor;
 }
 )glsl";
 
@@ -101,16 +101,27 @@ bool OpenGLRenderer::initialize()
         return false;
     }
 
-    glGenVertexArrays(1, &vertexArray_);
-    glGenBuffers(1, &vertexBuffer_);
+    glGenVertexArrays(1, &lineVertexArray_);
+    glGenBuffers(1, &lineVertexBuffer_);
+    glGenVertexArrays(1, &fillVertexArray_);
+    glGenBuffers(1, &fillVertexBuffer_);
 
-    glBindVertexArray(vertexArray_);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer_);
+    glBindVertexArray(lineVertexArray_);
+    glBindBuffer(GL_ARRAY_BUFFER, lineVertexBuffer_);
     glBufferData(GL_ARRAY_BUFFER, 0, nullptr, GL_DYNAMIC_DRAW);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(LineVertex), reinterpret_cast<void*>(0));
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(LineVertex), reinterpret_cast<void*>(sizeof(Vec3)));
+    glEnableVertexAttribArray(1);
+
+    glBindVertexArray(fillVertexArray_);
+    glBindBuffer(GL_ARRAY_BUFFER, fillVertexBuffer_);
+    glBufferData(GL_ARRAY_BUFFER, 0, nullptr, GL_DYNAMIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ColoredVertex), reinterpret_cast<void*>(0));
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(ColoredVertex), reinterpret_cast<void*>(sizeof(Vec3)));
     glEnableVertexAttribArray(1);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -120,7 +131,7 @@ bool OpenGLRenderer::initialize()
     return true;
 }
 
-void OpenGLRenderer::render(const Mat4& viewProjectionMatrix, const std::vector<LineVertex>& lineVertices, AppMode mode, bool simulationStarted)
+void OpenGLRenderer::render(const Mat4& viewProjectionMatrix, const RenderScene& scene, AppMode mode, bool simulationStarted)
 {
     if (mode == AppMode::Preparation) {
         glClearColor(0.055f, 0.075f, 0.11f, 1.0f);
@@ -136,22 +147,44 @@ void OpenGLRenderer::render(const Mat4& viewProjectionMatrix, const std::vector<
     const int matrixLocation = glGetUniformLocation(shaderProgram_, "uViewProjection");
     glUniformMatrix4fv(matrixLocation, 1, GL_FALSE, viewProjectionMatrix.values.data());
 
-    glBindVertexArray(vertexArray_);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer_);
-    glBufferData(GL_ARRAY_BUFFER, static_cast<long long>(lineVertices.size() * sizeof(LineVertex)), lineVertices.data(), GL_DYNAMIC_DRAW);
-    glDrawArrays(GL_LINES, 0, static_cast<int>(lineVertices.size()));
+    if (!scene.fillVertices.empty()) {
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glDepthMask(GL_FALSE);
+
+        glBindVertexArray(fillVertexArray_);
+        glBindBuffer(GL_ARRAY_BUFFER, fillVertexBuffer_);
+        glBufferData(GL_ARRAY_BUFFER, static_cast<long long>(scene.fillVertices.size() * sizeof(ColoredVertex)), scene.fillVertices.data(), GL_DYNAMIC_DRAW);
+        glDrawArrays(GL_TRIANGLES, 0, static_cast<int>(scene.fillVertices.size()));
+
+        glDepthMask(GL_TRUE);
+        glDisable(GL_BLEND);
+    }
+
+    glBindVertexArray(lineVertexArray_);
+    glBindBuffer(GL_ARRAY_BUFFER, lineVertexBuffer_);
+    glBufferData(GL_ARRAY_BUFFER, static_cast<long long>(scene.lineVertices.size() * sizeof(LineVertex)), scene.lineVertices.data(), GL_DYNAMIC_DRAW);
+    glDrawArrays(GL_LINES, 0, static_cast<int>(scene.lineVertices.size()));
     glBindVertexArray(0);
 }
 
 void OpenGLRenderer::shutdown()
 {
-    if (vertexBuffer_ != 0) {
-        glDeleteBuffers(1, &vertexBuffer_);
-        vertexBuffer_ = 0;
+    if (fillVertexBuffer_ != 0) {
+        glDeleteBuffers(1, &fillVertexBuffer_);
+        fillVertexBuffer_ = 0;
     }
-    if (vertexArray_ != 0) {
-        glDeleteVertexArrays(1, &vertexArray_);
-        vertexArray_ = 0;
+    if (fillVertexArray_ != 0) {
+        glDeleteVertexArrays(1, &fillVertexArray_);
+        fillVertexArray_ = 0;
+    }
+    if (lineVertexBuffer_ != 0) {
+        glDeleteBuffers(1, &lineVertexBuffer_);
+        lineVertexBuffer_ = 0;
+    }
+    if (lineVertexArray_ != 0) {
+        glDeleteVertexArrays(1, &lineVertexArray_);
+        lineVertexArray_ = 0;
     }
     if (shaderProgram_ != 0) {
         glDeleteProgram(shaderProgram_);
