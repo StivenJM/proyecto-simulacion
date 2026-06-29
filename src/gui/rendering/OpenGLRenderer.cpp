@@ -87,6 +87,14 @@ unsigned int createShaderProgram()
     return program;
 }
 
+void drawColoredVertices(unsigned int vertexArray, unsigned int vertexBuffer, const std::vector<ColoredVertex>& vertices)
+{
+    glBindVertexArray(vertexArray);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
+    glBufferData(GL_ARRAY_BUFFER, static_cast<long long>(vertices.size() * sizeof(ColoredVertex)), vertices.data(), GL_DYNAMIC_DRAW);
+    glDrawArrays(GL_TRIANGLES, 0, static_cast<int>(vertices.size()));
+}
+
 }  // namespace
 
 OpenGLRenderer::~OpenGLRenderer()
@@ -147,24 +155,29 @@ void OpenGLRenderer::render(const Mat4& viewProjectionMatrix, const RenderScene&
     const int matrixLocation = glGetUniformLocation(shaderProgram_, "uViewProjection");
     glUniformMatrix4fv(matrixLocation, 1, GL_FALSE, viewProjectionMatrix.values.data());
 
+    if (!scene.opaqueFillVertices.empty()) {
+        glDisable(GL_BLEND);
+        glDepthMask(GL_TRUE);
+        drawColoredVertices(fillVertexArray_, fillVertexBuffer_, scene.opaqueFillVertices);
+    }
+
     if (!scene.fillVertices.empty()) {
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         glDepthMask(GL_FALSE);
 
-        glBindVertexArray(fillVertexArray_);
-        glBindBuffer(GL_ARRAY_BUFFER, fillVertexBuffer_);
-        glBufferData(GL_ARRAY_BUFFER, static_cast<long long>(scene.fillVertices.size() * sizeof(ColoredVertex)), scene.fillVertices.data(), GL_DYNAMIC_DRAW);
-        glDrawArrays(GL_TRIANGLES, 0, static_cast<int>(scene.fillVertices.size()));
+        drawColoredVertices(fillVertexArray_, fillVertexBuffer_, scene.fillVertices);
 
         glDepthMask(GL_TRUE);
         glDisable(GL_BLEND);
     }
 
+    glDepthFunc(GL_LEQUAL);
     glBindVertexArray(lineVertexArray_);
     glBindBuffer(GL_ARRAY_BUFFER, lineVertexBuffer_);
     glBufferData(GL_ARRAY_BUFFER, static_cast<long long>(scene.lineVertices.size() * sizeof(LineVertex)), scene.lineVertices.data(), GL_DYNAMIC_DRAW);
     glDrawArrays(GL_LINES, 0, static_cast<int>(scene.lineVertices.size()));
+    glDepthFunc(GL_LESS);
     glBindVertexArray(0);
 }
 

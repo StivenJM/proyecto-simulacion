@@ -29,8 +29,12 @@ add_executable(AcousticSimulator
     src/gui/entities/GuiTriangle.h
     src/gui/factories/PlaneServiceFactory.cpp
     src/gui/factories/PlaneServiceFactory.h
+    src/gui/factories/ReceiverServiceFactory.cpp
+    src/gui/factories/ReceiverServiceFactory.h
     src/gui/factories/ScenarioServiceFactory.cpp
     src/gui/factories/ScenarioServiceFactory.h
+    src/gui/factories/SourceServiceFactory.cpp
+    src/gui/factories/SourceServiceFactory.h
     src/gui/input/CameraController.cpp
     src/gui/input/CameraController.h
     src/gui/input/InputState.cpp
@@ -54,24 +58,38 @@ add_executable(AcousticSimulator
     src/gui/screens/preparation/components/PlaneCreationPanel.h
     src/gui/screens/preparation/components/PlanePropertiesPanel.cpp
     src/gui/screens/preparation/components/PlanePropertiesPanel.h
+    src/gui/screens/preparation/components/ReceiverPropertiesPanel.cpp
+    src/gui/screens/preparation/components/ReceiverPropertiesPanel.h
     src/gui/screens/preparation/components/PlaneEditorPanel.cpp
     src/gui/screens/preparation/components/PlaneEditorPanel.h
+    src/gui/screens/preparation/components/SourcePropertiesPanel.cpp
+    src/gui/screens/preparation/components/SourcePropertiesPanel.h
     src/gui/screens/simulation/SimulationScreen.cpp
     src/gui/screens/simulation/SimulationScreen.h
     src/gui/services/IPlaneService.h
+    src/gui/services/IReceiverService.h
     src/gui/services/IScenarioService.h
     src/gui/services/ISimulationService.h
+    src/gui/services/ISourceService.h
     src/gui/services/dtos/PlaneDtos.h
     src/gui/services/dtos/ScenarioDtos.h
     src/gui/services/dtos/SimulationDtos.h
     src/gui/services/implementations/core/CorePlaneService.cpp
     src/gui/services/implementations/core/CorePlaneService.h
+    src/gui/services/implementations/core/CoreReceiverService.cpp
+    src/gui/services/implementations/core/CoreReceiverService.h
     src/gui/services/implementations/core/CoreScenarioService.cpp
     src/gui/services/implementations/core/CoreScenarioService.h
+    src/gui/services/implementations/core/CoreSourceService.cpp
+    src/gui/services/implementations/core/CoreSourceService.h
     src/gui/services/implementations/mock/MockPlaneService.cpp
     src/gui/services/implementations/mock/MockPlaneService.h
+    src/gui/services/implementations/mock/MockReceiverService.cpp
+    src/gui/services/implementations/mock/MockReceiverService.h
     src/gui/services/implementations/mock/MockScenarioService.cpp
     src/gui/services/implementations/mock/MockScenarioService.h
+    src/gui/services/implementations/mock/MockSourceService.cpp
+    src/gui/services/implementations/mock/MockSourceService.h
 )
 
 target_include_directories(AcousticSimulator

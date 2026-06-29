@@ -4,7 +4,34 @@
 
 #include <imgui.h>
 
+#include <string>
+
 namespace gui {
+namespace {
+
+struct SectionHeaderState {
+    bool open = false;
+    bool addClicked = false;
+};
+
+SectionHeaderState sectionHeader(const char* label, const char* tooltip)
+{
+    ImGui::PushID(label);
+    const bool open = ImGui::TreeNodeEx("##section", ImGuiTreeNodeFlags_DefaultOpen, "%s", label);
+
+    const float buttonSize = ImGui::GetFrameHeight();
+    const float buttonX = ImGui::GetWindowContentRegionMax().x - buttonSize;
+    ImGui::SameLine(buttonX);
+    const bool addClicked = ImGui::Button("+", ImVec2(buttonSize, 0.0f));
+    if (ImGui::IsItemHovered()) {
+        ImGui::SetTooltip("%s", tooltip);
+    }
+    ImGui::PopID();
+
+    return {open, addClicked};
+}
+
+}  // namespace
 
 void SceneHierarchyPanel::render(PreparationScreen& screen)
 {
@@ -22,7 +49,11 @@ void SceneHierarchyPanel::render(PreparationScreen& screen)
     ImGui::TextDisabled("Select an object to edit its properties.");
     ImGui::Separator();
 
-    if (ImGui::TreeNodeEx("Room", ImGuiTreeNodeFlags_DefaultOpen)) {
+    const SectionHeaderState planesHeader = sectionHeader("Planes", "Add plane");
+    if (planesHeader.addClicked) {
+        screen.addDefaultPlane();
+    }
+    if (planesHeader.open) {
         for (const GuiPlane& plane : screen.scenario().planes) {
             const bool selected = screen.selectedPlaneId() == plane.id;
             const std::string label = (plane.name.empty() ? "Plane" : plane.name) + "  #" + std::to_string(plane.id);
@@ -37,23 +68,39 @@ void SceneHierarchyPanel::render(PreparationScreen& screen)
         ImGui::TreePop();
     }
 
-    if (ImGui::TreeNodeEx("Sources", ImGuiTreeNodeFlags_DefaultOpen)) {
+    const SectionHeaderState sourcesHeader = sectionHeader("Sources", "Add source");
+    if (sourcesHeader.addClicked) {
+        screen.addDefaultSource();
+    }
+    if (sourcesHeader.open) {
         if (screen.scenario().sources.empty()) {
             ImGui::TextDisabled("No sources yet.");
         } else {
             for (const GuiSource& source : screen.scenario().sources) {
-                ImGui::TextDisabled("Source #%d", source.id);
+                const bool selected = screen.selectedSourceId() == source.id;
+                const std::string label = (source.name.empty() ? "Source" : source.name) + "  #" + std::to_string(source.id);
+                if (ImGui::Selectable(label.c_str(), selected)) {
+                    screen.selectSource(source.id);
+                }
             }
         }
         ImGui::TreePop();
     }
 
-    if (ImGui::TreeNodeEx("Receivers", ImGuiTreeNodeFlags_DefaultOpen)) {
+    const SectionHeaderState receiversHeader = sectionHeader("Receivers", "Add receiver");
+    if (receiversHeader.addClicked) {
+        screen.addDefaultReceiver();
+    }
+    if (receiversHeader.open) {
         if (screen.scenario().receivers.empty()) {
             ImGui::TextDisabled("No receivers yet.");
         } else {
             for (const GuiReceiver& receiver : screen.scenario().receivers) {
-                ImGui::TextDisabled("Receiver #%d", receiver.id);
+                const bool selected = screen.selectedReceiverId() == receiver.id;
+                const std::string label = (receiver.name.empty() ? "Receiver" : receiver.name) + "  #" + std::to_string(receiver.id);
+                if (ImGui::Selectable(label.c_str(), selected)) {
+                    screen.selectReceiver(receiver.id);
+                }
             }
         }
         ImGui::TreePop();

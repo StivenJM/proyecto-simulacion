@@ -10,6 +10,8 @@ namespace gui {
 
 struct GuiScenario {
     int nextPlaneId = 1;
+    int nextSourceId = 1;
+    int nextReceiverId = 1;
     std::vector<GuiPlane> planes;
     std::vector<GuiSource> sources;
     std::vector<GuiReceiver> receivers;

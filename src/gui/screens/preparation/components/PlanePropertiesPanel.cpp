@@ -4,6 +4,7 @@
 
 #include <cstring>
 #include <imgui.h>
+#include <cstddef>
 #include <string>
 
 namespace gui {
@@ -27,7 +28,7 @@ void PlanePropertiesPanel::render(PreparationScreen& screen)
 
     const GuiPlane* plane = screen.selectedPlane();
     if (plane == nullptr) {
-        ImGui::TextWrapped("Select a plane in the scenario hierarchy to edit its properties.");
+        ImGui::TextWrapped("Select a plane, source, or receiver in the scenario hierarchy to edit its properties.");
         return;
     }
 

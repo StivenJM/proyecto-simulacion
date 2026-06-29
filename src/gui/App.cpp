@@ -14,7 +14,7 @@ namespace gui {
 App::App()
     : services_(GuiComposition::createServices({})),
       scenario_(services_.scenarioService->createInitialScenario(selection_)),
-      preparationScreen_(scenario_, selection_, *services_.planeService)
+      preparationScreen_(scenario_, selection_, *services_.planeService, *services_.sourceService, *services_.receiverService)
 {
 }
 
@@ -62,7 +62,7 @@ bool App::initialize()
     updateWindowTitle();
 
     std::cout << "Controls: Tab switches Preparation/Simulation mode, Enter starts simulation mode, Esc closes.\n";
-    std::cout << "Preparation: P adds a rectangular plane, B adds a room, C selects next plane, I/K/J/L/U/O moves selected plane.\n";
+    std::cout << "Preparation: P adds a rectangular plane, B adds a room, C selects next plane, I/K/J/L/U/O moves selected item.\n";
     std::cout << "Point planes: N starts draft, M adds cursor point, I/K/J/L/U/O moves draft cursor, F finalizes, V edits selected plane, X cancels draft.\n";
     if (!renderer_.initialize()) {
         return false;
@@ -88,6 +88,7 @@ void App::run()
         if (mode_ == AppMode::Preparation) {
             sceneHierarchyPanel_.render(preparationScreen_);
             planeEditorPanel_.render(preparationScreen_);
+            updateWindowTitle();
         }
 
         if (!imguiWantsKeyboard && mode_ == AppMode::Preparation && preparationScreen_.handleInput(input_, deltaTime)) {
@@ -173,7 +174,13 @@ void App::updateWindowTitle()
 {
     std::string title = "Acoustic Simulator - ";
     if (mode_ == AppMode::Preparation) {
-        title += "Preparation Mode [Plane " + std::to_string(preparationScreen_.selectedPlaneId()) + "] [Tab: Simulation]";
+        if (selection_.isSourceSelected()) {
+            title += "Preparation Mode [Source " + std::to_string(preparationScreen_.selectedSourceId()) + "] [Tab: Simulation]";
+        } else if (selection_.isReceiverSelected()) {
+            title += "Preparation Mode [Receiver " + std::to_string(preparationScreen_.selectedReceiverId()) + "] [Tab: Simulation]";
+        } else {
+            title += "Preparation Mode [Plane " + std::to_string(preparationScreen_.selectedPlaneId()) + "] [Tab: Simulation]";
+        }
     } else if (simulationScreen_.isStarted()) {
         title += "Simulation Mode - Running [Tab: Preparation]";
     } else {
