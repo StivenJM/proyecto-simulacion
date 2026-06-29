@@ -1,26 +1,17 @@
 #pragma once
 
-#include <array>
+#include "gui/math/MathTypes.h"
 
 struct GLFWwindow;
 
 namespace gui {
-
-struct Vec3 {
-    float x;
-    float y;
-    float z;
-};
-
-struct Mat4 {
-    std::array<float, 16> values{};
-};
 
 class CameraController {
 public:
     void setViewport(int width, int height);
     void update(GLFWwindow* window, float deltaTime);
     Mat4 viewProjectionMatrix() const;
+    Mat4 viewProjectionFrom(Vec3 eye, Vec3 target, float fovDegrees = 60.0f) const;
 
 private:
     int viewportWidth_ = 1280;

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gui/input/CameraController.h"
+#include "gui/math/MathTypes.h"
 
 #include <vector>
 
@@ -21,6 +21,39 @@ struct ColorRgba {
 struct ColoredVertex {
     Vec3 position;
     ColorRgba color;
+};
+
+struct RenderPlaneEnergy {
+    int planeId = 0;
+    float energy = 0.0f;
+};
+
+struct RenderTriangleEnergy {
+    int planeId = 0;
+    int triangleId = 0;
+    float energy = 0.0f;
+};
+
+struct RenderRayParticle {
+    Vec3 position{0.0f, 0.0f, 0.0f};
+    float radius = 0.04f;
+    float energy = 1.0f;
+};
+
+struct RenderRayTrail {
+    Vec3 start{0.0f, 0.0f, 0.0f};
+    Vec3 end{0.0f, 0.0f, 0.0f};
+    float energy = 1.0f;
+};
+
+struct RenderSimulationOverlay {
+    bool active = false;
+    bool showDiffuseEnergy = true;
+    bool showRayTracing = true;
+    std::vector<RenderPlaneEnergy> planeEnergy;
+    std::vector<RenderTriangleEnergy> triangleEnergy;
+    std::vector<RenderRayParticle> rayParticles;
+    std::vector<RenderRayTrail> rayTrails;
 };
 
 struct RenderScene {

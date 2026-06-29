@@ -89,6 +89,10 @@ void App::run()
             sceneHierarchyPanel_.render(preparationScreen_);
             planeEditorPanel_.render(preparationScreen_);
             updateWindowTitle();
+        } else {
+            simulationScreen_.update(deltaTime, scenario_);
+            simulationScreen_.renderPanel(scenario_);
+            updateWindowTitle();
         }
 
         if (!imguiWantsKeyboard && mode_ == AppMode::Preparation && preparationScreen_.handleInput(input_, deltaTime)) {
@@ -100,8 +104,8 @@ void App::run()
         }
 
         renderer_.render(
-            camera_.viewProjectionMatrix(),
-            renderMapper_.buildRenderScene(scenario_, selection_, preparationScreen_.draft()),
+            simulationViewProjection(),
+            renderMapper_.buildRenderScene(scenario_, selection_, preparationScreen_.draft(), simulationScreen_.renderOverlay()),
             mode_,
             simulationScreen_.isStarted()
         );
@@ -164,10 +168,27 @@ void App::startSimulation()
         return;
     }
 
-    if (simulationScreen_.start()) {
+    if (simulationScreen_.start(scenario_)) {
         updateWindowTitle();
         std::cout << "Simulation started. Preparation editing is locked.\n";
     }
+}
+
+Mat4 App::simulationViewProjection() const
+{
+    if (mode_ != AppMode::Simulation || simulationScreen_.viewMode() == SimulationViewMode::External || scenario_.receivers.empty()) {
+        return camera_.viewProjectionMatrix();
+    }
+
+    const Vec3 eye = scenario_.receivers.front().position;
+    Vec3 target{eye.x, eye.y, eye.z - 1.0f};
+    if (!scenario_.sources.empty()) {
+        target = scenario_.sources.front().position;
+    } else if (!scenario_.planes.empty()) {
+        target = scenario_.planes.front().center;
+    }
+
+    return camera_.viewProjectionFrom({eye.x, eye.y + 0.25f, eye.z}, target, 68.0f);
 }
 
 void App::updateWindowTitle()
@@ -181,7 +202,9 @@ void App::updateWindowTitle()
         } else {
             title += "Preparation Mode [Plane " + std::to_string(preparationScreen_.selectedPlaneId()) + "] [Tab: Simulation]";
         }
-    } else if (simulationScreen_.isStarted()) {
+    } else if (simulationScreen_.isFinished()) {
+        title += "Simulation Mode - Finished [Enter: Restart] [Tab: Preparation]";
+    } else if (simulationScreen_.isRunning()) {
         title += "Simulation Mode - Running [Tab: Preparation]";
     } else {
         title += "Simulation Mode - Ready [Enter: Start] [Tab: Preparation]";

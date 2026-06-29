@@ -3,6 +3,8 @@
 #include "gui/screens/components/AxisGizmo.h"
 
 #include <array>
+#include <algorithm>
+#include <cmath>
 
 namespace gui {
 namespace {
@@ -66,6 +68,47 @@ ColorRgba absorptionMappedPlaneFillColor(const GuiPlane& plane)
     return {mappedColor.x, mappedColor.y, mappedColor.z, 0.30f};
 }
 
+float planeEnergy(const RenderSimulationOverlay& overlay, int planeId)
+{
+    if (!overlay.active || !overlay.showDiffuseEnergy) {
+        return 0.0f;
+    }
+
+    for (const RenderPlaneEnergy& sample : overlay.planeEnergy) {
+        if (sample.planeId == planeId) {
+            return clamp01(sample.energy);
+        }
+    }
+
+    return 0.0f;
+}
+
+float triangleEnergy(const RenderSimulationOverlay& overlay, int planeId, int triangleId, float fallback)
+{
+    if (!overlay.active || !overlay.showDiffuseEnergy) {
+        return 0.0f;
+    }
+
+    for (const RenderTriangleEnergy& sample : overlay.triangleEnergy) {
+        if (sample.planeId == planeId && sample.triangleId == triangleId) {
+            return clamp01(sample.energy);
+        }
+    }
+
+    return fallback;
+}
+
+ColorRgba energyTintedFillColor(const GuiPlane& plane, float energy)
+{
+    const ColorRgba base = absorptionMappedPlaneFillColor(plane);
+    const float mappedEnergy = clamp01(energy);
+    const Vec3 cool{base.r, base.g, base.b};
+    const Vec3 warm = mix(Vec3{1.0f, 0.78f, 0.18f}, Vec3{1.0f, 0.24f, 0.08f}, mappedEnergy);
+    const Vec3 color = mix(cool, warm, mappedEnergy * 0.72f);
+    const float alpha = std::min(0.62f, base.a + mappedEnergy * 0.30f);
+    return {color.x, color.y, color.z, alpha};
+}
+
 void appendPlaneLines(std::vector<LineVertex>& vertices, const GuiPlane& plane, bool selected)
 {
     if (!plane.visible) {
@@ -124,13 +167,27 @@ void appendPlaneLines(std::vector<LineVertex>& vertices, const GuiPlane& plane, 
     }
 }
 
-void appendPlaneFill(std::vector<ColoredVertex>& vertices, const GuiPlane& plane)
+void appendPlaneFill(std::vector<ColoredVertex>& vertices, const GuiPlane& plane, const RenderSimulationOverlay& simulationOverlay)
 {
     if (!plane.visible || plane.outlinePoints.size() < 3) {
         return;
     }
 
-    const ColorRgba color = absorptionMappedPlaneFillColor(plane);
+    const bool showDiffuseEnergy = simulationOverlay.active && simulationOverlay.showDiffuseEnergy;
+    const float planeLevel = planeEnergy(simulationOverlay, plane.id);
+    if (showDiffuseEnergy && !plane.triangles.empty()) {
+        for (const GuiTriangle& triangle : plane.triangles) {
+            if (!triangle.visible) {
+                continue;
+            }
+
+            const float level = triangleEnergy(simulationOverlay, plane.id, triangle.id, planeLevel);
+            addTriangle(vertices, triangle.vertices[0], triangle.vertices[1], triangle.vertices[2], energyTintedFillColor(plane, level));
+        }
+        return;
+    }
+
+    const ColorRgba color = showDiffuseEnergy ? energyTintedFillColor(plane, planeLevel) : absorptionMappedPlaneFillColor(plane);
     const Vec3 origin = plane.outlinePoints.front();
     for (std::size_t index = 1; index + 1 < plane.outlinePoints.size(); ++index) {
         vertices.push_back({origin, color});
@@ -243,6 +300,42 @@ void appendIcosahedronFill(std::vector<ColoredVertex>& vertices, Vec3 center, Ve
     }
 }
 
+void appendRayParticle(std::vector<ColoredVertex>& fillVertices, const RenderRayParticle& particle)
+{
+    const float energy = clamp01(particle.energy);
+    if (energy <= 0.01f) {
+        return;
+    }
+
+    const Vec3 coreYellow{1.0f, 0.92f, 0.16f};
+    const Vec3 haloYellow{1.0f, 0.70f, 0.04f};
+    const float visibleEnergy = energy * energy;
+
+    const float coreRadius = particle.radius * (0.25f + energy * 0.95f);
+    const float innerHaloRadius = particle.radius * (1.35f + (1.0f - energy) * 0.75f);
+    const float outerHaloRadius = particle.radius * (2.35f + (1.0f - energy) * 1.25f);
+
+    const ColorRgba coreColor{coreYellow.x, coreYellow.y, coreYellow.z, 0.85f * std::pow(energy, 1.5f)};
+    const ColorRgba innerHaloColor{haloYellow.x, haloYellow.y, haloYellow.z, 0.30f * energy};
+    const ColorRgba outerHaloColor{haloYellow.x, haloYellow.y, haloYellow.z, 0.12f * visibleEnergy};
+
+    const std::array<Vec3, 12> outerHaloPoints = buildIcosahedronPoints(particle.position, outerHaloRadius);
+    for (const auto& face : icosahedronFaces()) {
+        addTriangle(fillVertices, outerHaloPoints[face[0]], outerHaloPoints[face[1]], outerHaloPoints[face[2]], outerHaloColor);
+    }
+
+    const std::array<Vec3, 12> innerHaloPoints = buildIcosahedronPoints(particle.position, innerHaloRadius);
+    for (const auto& face : icosahedronFaces()) {
+        addTriangle(fillVertices, innerHaloPoints[face[0]], innerHaloPoints[face[1]], innerHaloPoints[face[2]], innerHaloColor);
+    }
+
+    const std::array<Vec3, 12> points = buildIcosahedronPoints(particle.position, coreRadius);
+
+    for (const auto& face : icosahedronFaces()) {
+        addTriangle(fillVertices, points[face[0]], points[face[1]], points[face[2]], coreColor);
+    }
+}
+
 void appendSelectableIcosahedronMarker(std::vector<ColoredVertex>& opaqueFillVertices, std::vector<LineVertex>& lineVertices, Vec3 position, Vec3 color, bool selected)
 {
     const Vec3 fillColor = selected ? selectedMarkerColor(color) : color;
@@ -307,6 +400,11 @@ std::vector<LineVertex> GuiScenarioRenderMapper::buildLineVertices(const GuiScen
 
 RenderScene GuiScenarioRenderMapper::buildRenderScene(const GuiScenario& scenario, const GuiSelection& selection, const GuiPlaneDraft& draft) const
 {
+    return buildRenderScene(scenario, selection, draft, {});
+}
+
+RenderScene GuiScenarioRenderMapper::buildRenderScene(const GuiScenario& scenario, const GuiSelection& selection, const GuiPlaneDraft& draft, const RenderSimulationOverlay& simulationOverlay) const
+{
     RenderScene scene;
     scene.fillVertices.reserve(scenario.planes.size() * 6);
     scene.opaqueFillVertices.reserve((scenario.sources.size() + scenario.receivers.size()) * 60);
@@ -314,7 +412,7 @@ RenderScene GuiScenarioRenderMapper::buildRenderScene(const GuiScenario& scenari
 
     for (const GuiPlane& plane : scenario.planes) {
         const bool selected = selection.isPlaneSelected() && plane.id == selection.selectedPlaneId();
-        appendPlaneFill(scene.fillVertices, plane);
+        appendPlaneFill(scene.fillVertices, plane, simulationOverlay);
         appendPlaneLines(scene.lineVertices, plane, selected);
         if (selected) {
             appendTriangleInspection(scene.fillVertices, scene.lineVertices, plane, selection.selectedTriangleId());
@@ -327,6 +425,12 @@ RenderScene GuiScenarioRenderMapper::buildRenderScene(const GuiScenario& scenari
 
     for (const GuiReceiver& receiver : scenario.receivers) {
         appendReceiverMarker(scene.opaqueFillVertices, scene.lineVertices, receiver, selection.isReceiverSelected() && receiver.id == selection.selectedReceiverId());
+    }
+
+    if (simulationOverlay.active && simulationOverlay.showRayTracing) {
+        for (const RenderRayParticle& particle : simulationOverlay.rayParticles) {
+            appendRayParticle(scene.fillVertices, particle);
+        }
     }
 
     appendDraftLines(scene.lineVertices, draft);
