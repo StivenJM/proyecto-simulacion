@@ -1,5 +1,6 @@
 #pragma once
 
+#include "GuiTriangle.h"
 #include "gui/input/CameraController.h"
 
 #include <string>
@@ -25,6 +26,7 @@ struct GuiPlane {
     bool visible = true;
     Vec3 color{0.72f, 0.78f, 0.86f};
     float area = 1.0f;
+    std::vector<GuiTriangle> triangles;
 };
 
 }  // namespace gui

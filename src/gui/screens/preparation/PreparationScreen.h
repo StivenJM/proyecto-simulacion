@@ -37,6 +37,7 @@ public:
     int selectedPlaneId() const;
     int selectedSourceId() const;
     int selectedReceiverId() const;
+    int selectedTriangleId() const;
     void selectPlane(int planeId);
     void selectSource(int sourceId);
     void selectReceiver(int receiverId);
@@ -44,6 +45,7 @@ public:
     const GuiScenario& scenario() const;
     GuiSelection& selection();
     const GuiPlane* selectedPlane() const;
+    const GuiTriangle* selectedTriangle() const;
     const GuiSource* selectedSource() const;
     const GuiReceiver* selectedReceiver() const;
     void addDefaultPlane();
@@ -54,6 +56,7 @@ public:
     bool updateSelectedPlaneAbsorption(float absorption);
     bool updateSelectedPlaneVisibility(bool visible);
     bool updateSelectedPlaneColor(Vec3 color);
+    void selectTriangle(int triangleId);
     bool updateSelectedSourcePosition(Vec3 position);
     bool updateSelectedSourceName(const std::string& name);
     bool updateSelectedSourceVisibility(bool visible);

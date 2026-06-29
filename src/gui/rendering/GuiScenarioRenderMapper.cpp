@@ -28,8 +28,12 @@ Vec3 darker(Vec3 color)
 
 Vec3 selectedMarkerColor(Vec3 color)
 {
-    constexpr float factor = 0.78f;
-    return {color.x * factor, color.y * factor, color.z * factor};
+    constexpr float highlight = 0.22f;
+    return {
+        color.x + (1.0f - color.x) * highlight,
+        color.y + (1.0f - color.y) * highlight,
+        color.z + (1.0f - color.z) * highlight,
+    };
 }
 
 float clamp01(float value)
@@ -141,6 +145,35 @@ void appendPointMarker(std::vector<LineVertex>& vertices, Vec3 point, Vec3 color
     addLine(vertices, {point.x - size, point.y, point.z}, {point.x + size, point.y, point.z}, color);
     addLine(vertices, {point.x, point.y - size, point.z}, {point.x, point.y + size, point.z}, color);
     addLine(vertices, {point.x, point.y, point.z - size}, {point.x, point.y, point.z + size}, color);
+}
+
+void appendTriangleInspection(std::vector<ColoredVertex>& fillVertices, std::vector<LineVertex>& lineVertices, const GuiPlane& plane, int selectedTriangleId)
+{
+    if (!plane.visible) {
+        return;
+    }
+
+    const Vec3 edgeColor{1.0f, 0.86f, 0.18f};
+    const Vec3 centroidColor{0.22f, 1.0f, 0.74f};
+    const Vec3 selectedEdgeColor{1.0f, 0.34f, 0.18f};
+    const ColorRgba selectedFillColor{1.0f, 0.34f, 0.18f, 0.36f};
+
+    for (const GuiTriangle& triangle : plane.triangles) {
+        if (!triangle.visible) {
+            continue;
+        }
+
+        const bool selected = triangle.id == selectedTriangleId;
+        const Vec3 color = selected ? selectedEdgeColor : edgeColor;
+        addLine(lineVertices, triangle.vertices[0], triangle.vertices[1], color);
+        addLine(lineVertices, triangle.vertices[1], triangle.vertices[2], color);
+        addLine(lineVertices, triangle.vertices[2], triangle.vertices[0], color);
+        appendPointMarker(lineVertices, triangle.centroid, selected ? selectedEdgeColor : centroidColor);
+
+        if (selected) {
+            addTriangle(fillVertices, triangle.vertices[0], triangle.vertices[1], triangle.vertices[2], selectedFillColor);
+        }
+    }
 }
 
 std::array<Vec3, 12> buildIcosahedronPoints(Vec3 center, float radius)
@@ -280,8 +313,12 @@ RenderScene GuiScenarioRenderMapper::buildRenderScene(const GuiScenario& scenari
     scene.lineVertices.reserve(scenario.planes.size() * 12 + scenario.sources.size() * 60 + scenario.receivers.size() * 60 + draft.points.size() * 8 + 32);
 
     for (const GuiPlane& plane : scenario.planes) {
+        const bool selected = selection.isPlaneSelected() && plane.id == selection.selectedPlaneId();
         appendPlaneFill(scene.fillVertices, plane);
-        appendPlaneLines(scene.lineVertices, plane, selection.isPlaneSelected() && plane.id == selection.selectedPlaneId());
+        appendPlaneLines(scene.lineVertices, plane, selected);
+        if (selected) {
+            appendTriangleInspection(scene.fillVertices, scene.lineVertices, plane, selection.selectedTriangleId());
+        }
     }
 
     for (const GuiSource& source : scenario.sources) {

@@ -83,6 +83,21 @@ const GuiReceiver* findSelectedReceiver(const GuiScenario& scenario, int receive
     return nullptr;
 }
 
+const GuiTriangle* findSelectedTriangle(const GuiPlane* plane, int triangleId)
+{
+    if (plane == nullptr || triangleId == 0) {
+        return nullptr;
+    }
+
+    for (const GuiTriangle& triangle : plane->triangles) {
+        if (triangle.id == triangleId) {
+            return &triangle;
+        }
+    }
+
+    return nullptr;
+}
+
 }  // namespace
 
 PreparationScreen::PreparationScreen(
@@ -272,6 +287,11 @@ int PreparationScreen::selectedReceiverId() const
     return selection_.selectedReceiverId();
 }
 
+int PreparationScreen::selectedTriangleId() const
+{
+    return selection_.selectedTriangleId();
+}
+
 void PreparationScreen::selectPlane(int planeId)
 {
     selection_.selectPlane(planeId);
@@ -317,6 +337,11 @@ const GuiReceiver* PreparationScreen::selectedReceiver() const
     return findSelectedReceiver(scenario_, selection_.selectedReceiverId());
 }
 
+const GuiTriangle* PreparationScreen::selectedTriangle() const
+{
+    return findSelectedTriangle(selectedPlane(), selection_.selectedTriangleId());
+}
+
 void PreparationScreen::addDefaultPlane()
 {
     planeService_.addPlane(scenario_, selection_);
@@ -355,6 +380,11 @@ bool PreparationScreen::updateSelectedPlaneVisibility(bool visible)
 bool PreparationScreen::updateSelectedPlaneColor(Vec3 color)
 {
     return planeService_.updatePlaneColor(scenario_, selectedPlaneId(), color);
+}
+
+void PreparationScreen::selectTriangle(int triangleId)
+{
+    selection_.selectTriangle(triangleId);
 }
 
 bool PreparationScreen::updateSelectedSourcePosition(Vec3 position)

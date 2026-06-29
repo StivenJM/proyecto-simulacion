@@ -78,7 +78,48 @@ void PlanePropertiesPanel::render(PreparationScreen& screen)
     }
 
     ImGui::Text("Points: %zu", plane->outlinePoints.size());
-    ImGui::TextDisabled("Triangles: pending mesh generation");
+
+    if (ImGui::CollapsingHeader("Geometry", ImGuiTreeNodeFlags_DefaultOpen)) {
+        ImGui::Text("Triangles: %zu", plane->triangles.size());
+        ImGui::TextDisabled("Simulated triangle fan; ready to be replaced by Core triangle output.");
+
+        if (ImGui::BeginTable("TriangleTable", 3, ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchProp)) {
+            ImGui::TableSetupColumn("ID");
+            ImGui::TableSetupColumn("Area");
+            ImGui::TableSetupColumn("Centroid");
+            ImGui::TableHeadersRow();
+
+            for (const GuiTriangle& triangle : plane->triangles) {
+                ImGui::TableNextRow();
+                ImGui::TableSetColumnIndex(0);
+                const bool selected = triangle.id == screen.selectedTriangleId();
+                const std::string label = std::to_string(triangle.id);
+                if (ImGui::Selectable(label.c_str(), selected, ImGuiSelectableFlags_SpanAllColumns)) {
+                    screen.selectTriangle(triangle.id);
+                }
+
+                ImGui::TableSetColumnIndex(1);
+                ImGui::Text("%.2f", triangle.area);
+
+                ImGui::TableSetColumnIndex(2);
+                ImGui::Text("(%.2f, %.2f, %.2f)", triangle.centroid.x, triangle.centroid.y, triangle.centroid.z);
+            }
+
+            ImGui::EndTable();
+        }
+
+        if (const GuiTriangle* triangle = screen.selectedTriangle()) {
+            separatorText("Selected triangle");
+            ImGui::Text("ID: %d", triangle->id);
+            ImGui::Text("Area: %.3f m2", triangle->area);
+            ImGui::Text("Centroid: %.2f, %.2f, %.2f", triangle->centroid.x, triangle->centroid.y, triangle->centroid.z);
+            ImGui::Text("Distance to plane center: %.2f m", triangle->distanceToPlaneCenter);
+            for (std::size_t index = 0; index < triangle->vertices.size(); ++index) {
+                const Vec3& vertex = triangle->vertices[index];
+                ImGui::Text("V%zu: %.2f, %.2f, %.2f", index + 1, vertex.x, vertex.y, vertex.z);
+            }
+        }
+    }
 }
 
 }  // namespace gui
