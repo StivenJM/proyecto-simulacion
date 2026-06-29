@@ -32,6 +32,36 @@ Vec3 selectedMarkerColor(Vec3 color)
     return {color.x * factor, color.y * factor, color.z * factor};
 }
 
+float clamp01(float value)
+{
+    if (value < 0.0f) return 0.0f;
+    if (value > 1.0f) return 1.0f;
+    return value;
+}
+
+float mix(float from, float to, float amount)
+{
+    return from + (to - from) * amount;
+}
+
+Vec3 mix(Vec3 from, Vec3 to, float amount)
+{
+    return {
+        mix(from.x, to.x, amount),
+        mix(from.y, to.y, amount),
+        mix(from.z, to.z, amount),
+    };
+}
+
+ColorRgba absorptionMappedPlaneFillColor(const GuiPlane& plane)
+{
+    const float absorption = clamp01(plane.absorption);
+    const Vec3 reflectiveHighlight = mix(plane.color, Vec3{0.72f, 0.88f, 1.0f}, 0.28f);
+    const Vec3 absorptiveTint = mix(plane.color, Vec3{1.0f, 0.42f, 0.18f}, 0.45f);
+    const Vec3 mappedColor = mix(reflectiveHighlight, absorptiveTint, absorption);
+    return {mappedColor.x, mappedColor.y, mappedColor.z, 0.30f};
+}
+
 void appendPlaneLines(std::vector<LineVertex>& vertices, const GuiPlane& plane, bool selected)
 {
     if (!plane.visible) {
@@ -96,7 +126,7 @@ void appendPlaneFill(std::vector<ColoredVertex>& vertices, const GuiPlane& plane
         return;
     }
 
-    const ColorRgba color{plane.color.x, plane.color.y, plane.color.z, 0.30f};
+    const ColorRgba color = absorptionMappedPlaneFillColor(plane);
     const Vec3 origin = plane.outlinePoints.front();
     for (std::size_t index = 1; index + 1 < plane.outlinePoints.size(); ++index) {
         vertices.push_back({origin, color});

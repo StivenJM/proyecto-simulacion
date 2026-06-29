@@ -4,6 +4,7 @@
 
 #include <imgui.h>
 
+#include <cstdio>
 #include <string>
 
 namespace gui {
@@ -56,7 +57,9 @@ void SceneHierarchyPanel::render(PreparationScreen& screen)
     if (planesHeader.open) {
         for (const GuiPlane& plane : screen.scenario().planes) {
             const bool selected = screen.selectedPlaneId() == plane.id;
-            const std::string label = (plane.name.empty() ? "Plane" : plane.name) + "  #" + std::to_string(plane.id);
+            char absorptionLabel[32]{};
+            std::snprintf(absorptionLabel, sizeof(absorptionLabel), "  a=%.2f", plane.absorption);
+            const std::string label = (plane.name.empty() ? "Plane" : plane.name) + "  #" + std::to_string(plane.id) + absorptionLabel;
             if (ImGui::Selectable(label.c_str(), selected)) {
                 screen.selectPlane(plane.id);
             }

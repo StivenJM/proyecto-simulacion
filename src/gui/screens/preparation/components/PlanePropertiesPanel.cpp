@@ -40,10 +40,15 @@ void PlanePropertiesPanel::render(PreparationScreen& screen)
         screen.updateSelectedPlaneName(nameBuffer);
     }
 
+    separatorText("Acoustic properties");
+    ImGui::Text("Absorption: %.2f (%.0f%%)", plane->absorption, plane->absorption * 100.0f);
+    ImGui::TextDisabled("0 = reflective, 1 = fully absorptive");
+
     float absorption = plane->absorption;
-    if (ImGui::SliderFloat("Absorption", &absorption, 0.0f, 1.0f, "%.2f")) {
+    if (ImGui::SliderFloat("Absorption coefficient", &absorption, 0.0f, 1.0f, "%.2f")) {
         screen.updateSelectedPlaneAbsorption(absorption);
     }
+    ImGui::TextDisabled("Simulation result impact will use this value once the solver is connected.");
 
     bool visible = plane->visible;
     if (ImGui::Checkbox("Visible", &visible)) {
