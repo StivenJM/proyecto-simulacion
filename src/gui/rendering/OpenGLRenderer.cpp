@@ -2,29 +2,19 @@
 
 #include <glad/glad.h>
 
-#include <array>
 #include <iostream>
 
 namespace gui {
 namespace {
 
-struct Vertex {
-    float x;
-    float y;
-    float z;
-    float r;
-    float g;
-    float b;
-};
-
 constexpr const char* vertexShaderSource = R"glsl(
 #version 330 core
 layout (location = 0) in vec3 aPosition;
-layout (location = 1) in vec3 aColor;
+layout (location = 1) in vec4 aColor;
 
 uniform mat4 uViewProjection;
 
-out vec3 vColor;
+out vec4 vColor;
 
 void main()
 {
@@ -35,20 +25,14 @@ void main()
 
 constexpr const char* fragmentShaderSource = R"glsl(
 #version 330 core
-in vec3 vColor;
+in vec4 vColor;
 out vec4 FragColor;
 
 void main()
 {
-    FragColor = vec4(vColor, 1.0);
+    FragColor = vColor;
 }
 )glsl";
-
-void addLine(std::array<Vertex, 30>& vertices, int& index, Vec3 from, Vec3 to, Vec3 color)
-{
-    vertices[index++] = {from.x, from.y, from.z, color.x, color.y, color.z};
-    vertices[index++] = {to.x, to.y, to.z, color.x, color.y, color.z};
-}
 
 unsigned int compileShader(unsigned int type, const char* source)
 {
@@ -103,6 +87,14 @@ unsigned int createShaderProgram()
     return program;
 }
 
+void drawColoredVertices(unsigned int vertexArray, unsigned int vertexBuffer, const std::vector<ColoredVertex>& vertices)
+{
+    glBindVertexArray(vertexArray);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
+    glBufferData(GL_ARRAY_BUFFER, static_cast<long long>(vertices.size() * sizeof(ColoredVertex)), vertices.data(), GL_DYNAMIC_DRAW);
+    glDrawArrays(GL_TRIANGLES, 0, static_cast<int>(vertices.size()));
+}
+
 }  // namespace
 
 OpenGLRenderer::~OpenGLRenderer()
@@ -117,48 +109,27 @@ bool OpenGLRenderer::initialize()
         return false;
     }
 
-    std::array<Vertex, 30> vertices{};
-    int index = 0;
+    glGenVertexArrays(1, &lineVertexArray_);
+    glGenBuffers(1, &lineVertexBuffer_);
+    glGenVertexArrays(1, &fillVertexArray_);
+    glGenBuffers(1, &fillVertexBuffer_);
 
-    const Vec3 roomColor{0.72f, 0.78f, 0.86f};
-    const Vec3 floorA{-2.0f, -1.0f, -1.5f};
-    const Vec3 floorB{2.0f, -1.0f, -1.5f};
-    const Vec3 floorC{2.0f, -1.0f, 1.5f};
-    const Vec3 floorD{-2.0f, -1.0f, 1.5f};
-    const Vec3 roofA{-2.0f, 1.0f, -1.5f};
-    const Vec3 roofB{2.0f, 1.0f, -1.5f};
-    const Vec3 roofC{2.0f, 1.0f, 1.5f};
-    const Vec3 roofD{-2.0f, 1.0f, 1.5f};
+    glBindVertexArray(lineVertexArray_);
+    glBindBuffer(GL_ARRAY_BUFFER, lineVertexBuffer_);
+    glBufferData(GL_ARRAY_BUFFER, 0, nullptr, GL_DYNAMIC_DRAW);
 
-    addLine(vertices, index, floorA, floorB, roomColor);
-    addLine(vertices, index, floorB, floorC, roomColor);
-    addLine(vertices, index, floorC, floorD, roomColor);
-    addLine(vertices, index, floorD, floorA, roomColor);
-    addLine(vertices, index, roofA, roofB, roomColor);
-    addLine(vertices, index, roofB, roofC, roomColor);
-    addLine(vertices, index, roofC, roofD, roomColor);
-    addLine(vertices, index, roofD, roofA, roomColor);
-    addLine(vertices, index, floorA, roofA, roomColor);
-    addLine(vertices, index, floorB, roofB, roomColor);
-    addLine(vertices, index, floorC, roofC, roomColor);
-    addLine(vertices, index, floorD, roofD, roomColor);
-
-    addLine(vertices, index, {0.0f, 0.0f, 0.0f}, {1.0f, 0.0f, 0.0f}, {1.0f, 0.25f, 0.25f});
-    addLine(vertices, index, {0.0f, 0.0f, 0.0f}, {0.0f, 1.0f, 0.0f}, {0.25f, 1.0f, 0.25f});
-    addLine(vertices, index, {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 1.0f}, {0.25f, 0.45f, 1.0f});
-
-    lineVertexCount_ = index;
-
-    glGenVertexArrays(1, &vertexArray_);
-    glGenBuffers(1, &vertexBuffer_);
-
-    glBindVertexArray(vertexArray_);
-    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer_);
-    glBufferData(GL_ARRAY_BUFFER, lineVertexCount_ * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void*>(0));
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(LineVertex), reinterpret_cast<void*>(0));
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), reinterpret_cast<void*>(3 * sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(LineVertex), reinterpret_cast<void*>(sizeof(Vec3)));
+    glEnableVertexAttribArray(1);
+
+    glBindVertexArray(fillVertexArray_);
+    glBindBuffer(GL_ARRAY_BUFFER, fillVertexBuffer_);
+    glBufferData(GL_ARRAY_BUFFER, 0, nullptr, GL_DYNAMIC_DRAW);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(ColoredVertex), reinterpret_cast<void*>(0));
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(ColoredVertex), reinterpret_cast<void*>(sizeof(Vec3)));
     glEnableVertexAttribArray(1);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -168,7 +139,7 @@ bool OpenGLRenderer::initialize()
     return true;
 }
 
-void OpenGLRenderer::render(const Mat4& viewProjectionMatrix, AppMode mode, bool simulationStarted)
+void OpenGLRenderer::render(const Mat4& viewProjectionMatrix, const RenderScene& scene, AppMode mode, bool simulationStarted)
 {
     if (mode == AppMode::Preparation) {
         glClearColor(0.055f, 0.075f, 0.11f, 1.0f);
@@ -184,20 +155,49 @@ void OpenGLRenderer::render(const Mat4& viewProjectionMatrix, AppMode mode, bool
     const int matrixLocation = glGetUniformLocation(shaderProgram_, "uViewProjection");
     glUniformMatrix4fv(matrixLocation, 1, GL_FALSE, viewProjectionMatrix.values.data());
 
-    glBindVertexArray(vertexArray_);
-    glDrawArrays(GL_LINES, 0, lineVertexCount_);
+    if (!scene.opaqueFillVertices.empty()) {
+        glDisable(GL_BLEND);
+        glDepthMask(GL_TRUE);
+        drawColoredVertices(fillVertexArray_, fillVertexBuffer_, scene.opaqueFillVertices);
+    }
+
+    if (!scene.fillVertices.empty()) {
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        glDepthMask(GL_FALSE);
+
+        drawColoredVertices(fillVertexArray_, fillVertexBuffer_, scene.fillVertices);
+
+        glDepthMask(GL_TRUE);
+        glDisable(GL_BLEND);
+    }
+
+    glDepthFunc(GL_LEQUAL);
+    glBindVertexArray(lineVertexArray_);
+    glBindBuffer(GL_ARRAY_BUFFER, lineVertexBuffer_);
+    glBufferData(GL_ARRAY_BUFFER, static_cast<long long>(scene.lineVertices.size() * sizeof(LineVertex)), scene.lineVertices.data(), GL_DYNAMIC_DRAW);
+    glDrawArrays(GL_LINES, 0, static_cast<int>(scene.lineVertices.size()));
+    glDepthFunc(GL_LESS);
     glBindVertexArray(0);
 }
 
 void OpenGLRenderer::shutdown()
 {
-    if (vertexBuffer_ != 0) {
-        glDeleteBuffers(1, &vertexBuffer_);
-        vertexBuffer_ = 0;
+    if (fillVertexBuffer_ != 0) {
+        glDeleteBuffers(1, &fillVertexBuffer_);
+        fillVertexBuffer_ = 0;
     }
-    if (vertexArray_ != 0) {
-        glDeleteVertexArrays(1, &vertexArray_);
-        vertexArray_ = 0;
+    if (fillVertexArray_ != 0) {
+        glDeleteVertexArrays(1, &fillVertexArray_);
+        fillVertexArray_ = 0;
+    }
+    if (lineVertexBuffer_ != 0) {
+        glDeleteBuffers(1, &lineVertexBuffer_);
+        lineVertexBuffer_ = 0;
+    }
+    if (lineVertexArray_ != 0) {
+        glDeleteVertexArrays(1, &lineVertexArray_);
+        lineVertexArray_ = 0;
     }
     if (shaderProgram_ != 0) {
         glDeleteProgram(shaderProgram_);

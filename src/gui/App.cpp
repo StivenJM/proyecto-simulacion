@@ -2,14 +2,25 @@
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <imgui.h>
+
+#include "composition/GuiComposition.h"
 
 #include <iostream>
 #include <string>
 
 namespace gui {
 
+App::App()
+    : services_(GuiComposition::createServices({})),
+      scenario_(services_.scenarioService->createInitialScenario(selection_)),
+      preparationScreen_(scenario_, selection_, *services_.planeService, *services_.sourceService, *services_.receiverService)
+{
+}
+
 App::~App()
 {
+    imguiLayer_.shutdown();
     renderer_.shutdown();
 
     if (window_ != nullptr) {
@@ -51,7 +62,13 @@ bool App::initialize()
     updateWindowTitle();
 
     std::cout << "Controls: Tab switches Preparation/Simulation mode, Enter starts simulation mode, Esc closes.\n";
-    return renderer_.initialize();
+    std::cout << "Preparation: P adds a rectangular plane, B adds a room, C selects next plane, I/K/J/L/U/O moves selected item.\n";
+    std::cout << "Point planes: N starts draft, M adds cursor point, I/K/J/L/U/O moves draft cursor, F finalizes, V edits selected plane, X cancels draft.\n";
+    if (!renderer_.initialize()) {
+        return false;
+    }
+
+    return imguiLayer_.initialize(window_);
 }
 
 void App::run()
@@ -63,9 +80,36 @@ void App::run()
         const float deltaTime = currentTime - previousTime;
         previousTime = currentTime;
 
-        processInput();
-        camera_.update(window_, deltaTime);
-        renderer_.render(camera_.viewProjectionMatrix(), mode_, simulationStarted_);
+        input_.update(window_);
+        const bool imguiWantsKeyboard = ImGui::GetCurrentContext() != nullptr && ImGui::GetIO().WantCaptureKeyboard;
+        processInput(imguiWantsKeyboard);
+
+        imguiLayer_.beginFrame();
+        if (mode_ == AppMode::Preparation) {
+            sceneHierarchyPanel_.render(preparationScreen_);
+            planeEditorPanel_.render(preparationScreen_);
+            updateWindowTitle();
+        } else {
+            simulationScreen_.update(deltaTime, scenario_);
+            simulationScreen_.renderPanel(scenario_);
+            updateWindowTitle();
+        }
+
+        if (!imguiWantsKeyboard && mode_ == AppMode::Preparation && preparationScreen_.handleInput(input_, deltaTime)) {
+            updateWindowTitle();
+        }
+
+        if (!imguiWantsKeyboard) {
+            camera_.update(window_, deltaTime);
+        }
+
+        renderer_.render(
+            simulationViewProjection(),
+            renderMapper_.buildRenderScene(scenario_, selection_, preparationScreen_.draft(), simulationScreen_.renderOverlay()),
+            mode_,
+            simulationScreen_.isStarted()
+        );
+        imguiLayer_.render();
 
         glfwSwapBuffers(window_);
         glfwPollEvents();
@@ -86,17 +130,21 @@ void App::resize(int width, int height)
     camera_.setViewport(width, height);
 }
 
-void App::processInput()
+void App::processInput(bool imguiWantsKeyboard)
 {
-    if (glfwGetKey(window_, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+    if (input_.isDown(GLFW_KEY_ESCAPE)) {
         glfwSetWindowShouldClose(window_, true);
     }
 
-    if (isKeyPressedOnce(GLFW_KEY_TAB, tabWasPressed_)) {
+    if (imguiWantsKeyboard) {
+        return;
+    }
+
+    if (input_.wasPressed(GLFW_KEY_TAB)) {
         toggleMode();
     }
 
-    if (isKeyPressedOnce(GLFW_KEY_ENTER, enterWasPressed_)) {
+    if (input_.wasPressed(GLFW_KEY_ENTER)) {
         startSimulation();
     }
 }
@@ -107,7 +155,7 @@ void App::toggleMode()
         mode_ = AppMode::Simulation;
     } else {
         mode_ = AppMode::Preparation;
-        simulationStarted_ = false;
+        simulationScreen_.reset();
     }
 
     updateWindowTitle();
@@ -120,33 +168,49 @@ void App::startSimulation()
         return;
     }
 
-    if (!simulationStarted_) {
-        simulationStarted_ = true;
+    if (simulationScreen_.start(scenario_)) {
         updateWindowTitle();
         std::cout << "Simulation started. Preparation editing is locked.\n";
     }
+}
+
+Mat4 App::simulationViewProjection() const
+{
+    if (mode_ != AppMode::Simulation || simulationScreen_.viewMode() == SimulationViewMode::External || scenario_.receivers.empty()) {
+        return camera_.viewProjectionMatrix();
+    }
+
+    const Vec3 eye = scenario_.receivers.front().position;
+    Vec3 target{eye.x, eye.y, eye.z - 1.0f};
+    if (!scenario_.sources.empty()) {
+        target = scenario_.sources.front().position;
+    } else if (!scenario_.planes.empty()) {
+        target = scenario_.planes.front().center;
+    }
+
+    return camera_.viewProjectionFrom({eye.x, eye.y + 0.25f, eye.z}, target, 68.0f);
 }
 
 void App::updateWindowTitle()
 {
     std::string title = "Acoustic Simulator - ";
     if (mode_ == AppMode::Preparation) {
-        title += "Preparation Mode [Tab: Simulation]";
-    } else if (simulationStarted_) {
+        if (selection_.isSourceSelected()) {
+            title += "Preparation Mode [Source " + std::to_string(preparationScreen_.selectedSourceId()) + "] [Tab: Simulation]";
+        } else if (selection_.isReceiverSelected()) {
+            title += "Preparation Mode [Receiver " + std::to_string(preparationScreen_.selectedReceiverId()) + "] [Tab: Simulation]";
+        } else {
+            title += "Preparation Mode [Plane " + std::to_string(preparationScreen_.selectedPlaneId()) + "] [Tab: Simulation]";
+        }
+    } else if (simulationScreen_.isFinished()) {
+        title += "Simulation Mode - Finished [Enter: Restart] [Tab: Preparation]";
+    } else if (simulationScreen_.isRunning()) {
         title += "Simulation Mode - Running [Tab: Preparation]";
     } else {
         title += "Simulation Mode - Ready [Enter: Start] [Tab: Preparation]";
     }
 
     glfwSetWindowTitle(window_, title.c_str());
-}
-
-bool App::isKeyPressedOnce(int key, bool& previousState) const
-{
-    const bool isPressed = glfwGetKey(window_, key) == GLFW_PRESS;
-    const bool wasPressedNow = isPressed && !previousState;
-    previousState = isPressed;
-    return wasPressedNow;
 }
 
 }  // namespace gui
