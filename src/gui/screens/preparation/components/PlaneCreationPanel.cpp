@@ -21,7 +21,7 @@ void separatorText(const char* label)
 
 void PlaneCreationPanel::render(PreparationScreen& screen)
 {
-    separatorText("Plane Creation");
+    separatorText("Plane Draft");
 
     const GuiPlaneDraft draft = screen.draft();
     ImGui::Text("Draft: ");
@@ -31,11 +31,7 @@ void PlaneCreationPanel::render(PreparationScreen& screen)
     ImGui::SameLine();
     ImGui::TextDisabled("%zu / 3 minimum", screen.draftPointCount());
 
-    if (ImGui::Button("Create Default Plane", ImVec2(-1.0f, 0.0f))) {
-        screen.addDefaultPlane();
-    }
-
-    if (ImGui::Button("Start New Plane", ImVec2(-1.0f, 0.0f))) {
+    if (ImGui::Button("Start Plane Draft", ImVec2(-1.0f, 0.0f))) {
         screen.startDraft();
     }
 
@@ -71,7 +67,7 @@ void PlaneCreationPanel::render(PreparationScreen& screen)
     if (!canFinalizeDraft) {
         ImGui::BeginDisabled();
     }
-    if (ImGui::Button(editingExistingPlane ? "Save Plane" : "Create Plane", ImVec2(-1.0f, 0.0f))) {
+    if (ImGui::Button(editingExistingPlane ? "Save Plane" : "Finalize Draft", ImVec2(-1.0f, 0.0f))) {
         screen.finalizeDraft();
     }
     if (!canFinalizeDraft) {

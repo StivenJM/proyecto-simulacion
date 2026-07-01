@@ -150,4 +150,10 @@ Mat4 CameraController::viewProjectionMatrix() const
     return multiply(perspective(radians(45.0f), aspect, 0.1f, 100.0f), lookAt(eye, target_, {0.0f, 1.0f, 0.0f}));
 }
 
+Mat4 CameraController::viewProjectionFrom(Vec3 eye, Vec3 target, float fovDegrees) const
+{
+    const float aspect = static_cast<float>(viewportWidth_) / static_cast<float>(viewportHeight_);
+    return multiply(perspective(radians(fovDegrees), aspect, 0.05f, 100.0f), lookAt(eye, target, {0.0f, 1.0f, 0.0f}));
+}
+
 }  // namespace gui

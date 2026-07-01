@@ -36,6 +36,7 @@ private:
     void processInput(bool imguiWantsKeyboard);
     void toggleMode();
     void startSimulation();
+    Mat4 simulationViewProjection() const;
     void updateWindowTitle();
 
     GLFWwindow* window_ = nullptr;

@@ -17,13 +17,15 @@ public:
     OpenGLRenderer& operator=(const OpenGLRenderer&) = delete;
 
     bool initialize();
-    void render(const Mat4& viewProjectionMatrix, const std::vector<LineVertex>& lineVertices, AppMode mode, bool simulationStarted);
+    void render(const Mat4& viewProjectionMatrix, const RenderScene& scene, AppMode mode, bool simulationStarted);
     void shutdown();
 
 private:
     unsigned int shaderProgram_ = 0;
-    unsigned int vertexArray_ = 0;
-    unsigned int vertexBuffer_ = 0;
+    unsigned int lineVertexArray_ = 0;
+    unsigned int lineVertexBuffer_ = 0;
+    unsigned int fillVertexArray_ = 0;
+    unsigned int fillVertexBuffer_ = 0;
 };
 
 }  // namespace gui

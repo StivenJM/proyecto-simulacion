@@ -30,6 +30,11 @@ Vec3 averagePoint(const std::vector<Vec3>& points)
     return {center.x / count, center.y / count, center.z / count};
 }
 
+Vec3 subtract(Vec3 a, Vec3 b)
+{
+    return {a.x - b.x, a.y - b.y, a.z - b.z};
+}
+
 float length(Vec3 value)
 {
     return std::sqrt(value.x * value.x + value.y * value.y + value.z * value.z);
@@ -42,6 +47,11 @@ Vec3 cross(Vec3 a, Vec3 b)
         a.z * b.x - a.x * b.z,
         a.x * b.y - a.y * b.x,
     };
+}
+
+float triangleArea(Vec3 a, Vec3 b, Vec3 c)
+{
+    return length(cross(subtract(b, a), subtract(c, a))) * 0.5f;
 }
 
 float polygonArea(const std::vector<Vec3>& points)
@@ -109,6 +119,30 @@ void refreshDerivedPlaneData(GuiPlane& plane)
         plane.center = averagePoint(plane.outlinePoints);
     }
     plane.area = planeArea(plane);
+
+    plane.triangles.clear();
+    if (plane.outlinePoints.size() < 3) {
+        return;
+    }
+
+    const Vec3 origin = plane.outlinePoints.front();
+    for (std::size_t index = 1; index + 1 < plane.outlinePoints.size(); ++index) {
+        const Vec3 b = plane.outlinePoints[index];
+        const Vec3 c = plane.outlinePoints[index + 1];
+        GuiTriangle triangle;
+        triangle.id = plane.id * 1000 + static_cast<int>(index);
+        triangle.planeId = plane.id;
+        triangle.vertices = {origin, b, c};
+        triangle.centroid = {
+            (origin.x + b.x + c.x) / 3.0f,
+            (origin.y + b.y + c.y) / 3.0f,
+            (origin.z + b.z + c.z) / 3.0f,
+        };
+        triangle.area = triangleArea(origin, b, c);
+        triangle.visible = true;
+        triangle.distanceToPlaneCenter = length(subtract(triangle.centroid, plane.center));
+        plane.triangles.push_back(triangle);
+    }
 }
 
 GuiPlane* findPlane(GuiScenario& scenario, int planeId)
@@ -229,16 +263,6 @@ bool MockPlaneService::updatePlaneColor(GuiScenario& scenario, int planeId, Vec3
     return false;
 }
 
-bool MockPlaneService::updatePlaneMaterial(GuiScenario& scenario, int planeId, int materialId)
-{
-    if (GuiPlane* plane = findPlane(scenario, planeId)) {
-        plane->materialId = materialId;
-        return true;
-    }
-
-    return false;
-}
-
 void MockPlaneService::selectNext(const GuiScenario& scenario, GuiSelection& selection)
 {
     if (scenario.planes.empty()) {
@@ -269,6 +293,7 @@ void MockPlaneService::moveSelected(GuiScenario& scenario, const GuiSelection& s
                 point.y += delta.y;
                 point.z += delta.z;
             }
+            refreshDerivedPlaneData(plane);
             return;
         }
     }

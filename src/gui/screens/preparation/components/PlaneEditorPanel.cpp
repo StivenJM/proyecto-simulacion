@@ -2,6 +2,8 @@
 
 #include "PlaneCreationPanel.h"
 #include "PlanePropertiesPanel.h"
+#include "ReceiverPropertiesPanel.h"
+#include "SourcePropertiesPanel.h"
 #include "gui/screens/preparation/PreparationScreen.h"
 
 #include <imgui.h>
@@ -11,6 +13,8 @@ void PlaneEditorPanel::render(PreparationScreen& screen)
 {
     PlaneCreationPanel creationPanel;
     PlanePropertiesPanel propertiesPanel;
+    ReceiverPropertiesPanel receiverPropertiesPanel;
+    SourcePropertiesPanel sourcePropertiesPanel;
 
     ImGuiViewport* viewport = ImGui::GetMainViewport();
     constexpr float panelWidth = 360.0f;
@@ -24,10 +28,20 @@ void PlaneEditorPanel::render(PreparationScreen& screen)
                      ImGuiWindowFlags_NoSavedSettings);
 
     ImGui::TextUnformatted("Object Properties");
-    ImGui::TextDisabled("Scenario object details and creation tools.");
-    propertiesPanel.render(screen);
-    ImGui::Spacing();
-    creationPanel.render(screen);
+    ImGui::TextDisabled("Selected scenario object details.");
+
+    if (screen.selectedSource() != nullptr) {
+        sourcePropertiesPanel.render(screen);
+    } else if (screen.selectedReceiver() != nullptr) {
+        receiverPropertiesPanel.render(screen);
+    } else {
+        propertiesPanel.render(screen);
+
+        if (screen.selectedPlane() != nullptr || screen.hasActiveDraft()) {
+            ImGui::Spacing();
+            creationPanel.render(screen);
+        }
+    }
 
     ImGui::End();
     ImGui::PopStyleVar(2);
