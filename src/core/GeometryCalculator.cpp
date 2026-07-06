@@ -2,7 +2,6 @@
 #include <cmath>
 #include <algorithm>
 
-namespace services {
 namespace core {
 
 namespace {
@@ -68,18 +67,16 @@ bool GeometryCalculator::areVisible(const TriangleData& a, const TriangleData& b
     Vec3 na = normalVector(a);
     Vec3 nb = normalVector(b);
 
-    // Triángulos coplanares (normales casi paralelas) no son visibles entre sí
+    // Triangulos coplanares no son visibles entre si (RF-04)
     if (std::abs(dot(na, nb)) > 0.99) return false;
 
     Vec3 ca  = centroid(a);
     Vec3 cb  = centroid(b);
     Vec3 dir = normalize(subtract(cb, ca));
 
-    // El centroide de b debe estar en el frente del plano de a
     double dotA = dot(na, dir);
-    // El centroide de a debe estar en el frente del plano de b
-    Vec3 negDir = {-dir.x, -dir.y, -dir.z};
-    double dotB = dot(nb, negDir);
+    Vec3   neg  = {-dir.x, -dir.y, -dir.z};
+    double dotB = dot(nb, neg);
 
     return dotA > 0.01 && dotB > 0.01;
 }
@@ -97,8 +94,8 @@ DiffusionMatrixData GeometryCalculator::buildDiffusionMatrix(
     result.visibility.assign(n, std::vector<bool>(n, false));
 
     for (int i = 0; i < n; i++) {
-        Vec3 ci     = centroid(triangles[i]);
-        int visible = 0;
+        Vec3 ci      = centroid(triangles[i]);
+        int  visible = 0;
 
         for (int j = 0; j < n; j++) {
             if (i == j) continue;
@@ -113,7 +110,7 @@ DiffusionMatrixData GeometryCalculator::buildDiffusionMatrix(
             if (result.visibility[i][j]) visible++;
         }
 
-        // Distribución igual entre triángulos visibles
+        // RF-06: distribucion igual entre triangulos visibles
         if (visible > 0) {
             for (int j = 0; j < n; j++) {
                 if (i != j && result.visibility[i][j]) {
@@ -127,4 +124,3 @@ DiffusionMatrixData GeometryCalculator::buildDiffusionMatrix(
 }
 
 } // namespace core
-} // namespace services
