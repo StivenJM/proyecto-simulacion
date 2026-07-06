@@ -1,9 +1,9 @@
 #include "AppConfig.h"
 
-namespace config {
+namespace core {
 
 AppConfig loadAppConfig() {
     return AppConfig{};
 }
 
-} // namespace config
+} // namespace core

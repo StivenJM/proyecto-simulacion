@@ -1,9 +1,10 @@
 #pragma once
-#include "services/ISimulationService.h"
+#include "ISimulationService.h"
 
-namespace services {
-namespace mock {
+namespace core {
 
+// Implementacion falsa para desarrollo de GUI sin necesitar el Core completo.
+// Retorna datos coherentes pero inventados.
 class MockSimulationService : public ISimulationService {
 public:
     SimulationResult runSimulation(
@@ -12,5 +13,4 @@ public:
     ) override;
 };
 
-} // namespace mock
-} // namespace services
+} // namespace core
