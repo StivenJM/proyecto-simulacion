@@ -10,45 +10,17 @@ find_package(glad CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(OpenGL REQUIRED)
 
-# ── Capa config ──────────────────────────────────────────────────────────────
-add_library(app_config STATIC
-    src/config/AppConfig.cpp
-    src/config/AppConfig.h
-    src/config/ServiceMode.h
-)
-target_include_directories(app_config PUBLIC src)
-
-# ── Capa services (tipos, interfaz, factory) ─────────────────────────────────
-add_library(simulation_services STATIC
-    src/services/ServiceFactory.cpp
-    src/services/ServiceFactory.h
-    src/services/SimulationTypes.h
-    src/services/ISimulationService.h
-)
-target_include_directories(simulation_services PUBLIC src)
-target_link_libraries(simulation_services PUBLIC app_config)
-
-# ── Mock ─────────────────────────────────────────────────────────────────────
-add_library(simulation_service_mock STATIC
-    src/services/implementations/mock/MockSimulationService.cpp
-    src/services/implementations/mock/MockSimulationService.h
-)
-target_include_directories(simulation_service_mock PUBLIC src)
-target_link_libraries(simulation_service_mock PUBLIC simulation_services)
-
 # ── Core (sin OpenGL) ─────────────────────────────────────────────────────────
-add_library(simulation_service_core STATIC
-    src/services/implementations/core/GeometryCalculator.cpp
-    src/services/implementations/core/GeometryCalculator.h
-    src/services/implementations/core/RayTracer.cpp
-    src/services/implementations/core/RayTracer.h
-    src/services/implementations/core/DiffuseEnergySolver.cpp
-    src/services/implementations/core/DiffuseEnergySolver.h
-    src/services/implementations/core/CoreSimulationService.cpp
-    src/services/implementations/core/CoreSimulationService.h
+add_library(simulation_core STATIC
+    src/core/AppConfig.cpp
+    src/core/ServiceFactory.cpp
+    src/core/GeometryCalculator.cpp
+    src/core/RayTracer.cpp
+    src/core/DiffuseEnergySolver.cpp
+    src/core/CoreSimulationService.cpp
+    src/core/MockSimulationService.cpp
 )
-target_include_directories(simulation_service_core PUBLIC src)
-target_link_libraries(simulation_service_core PUBLIC simulation_services)
+target_include_directories(simulation_core PUBLIC src/core src)
 
 # ── Ejecutable principal ──────────────────────────────────────────────────────
 add_executable(AcousticSimulator
@@ -137,10 +109,7 @@ target_include_directories(AcousticSimulator PRIVATE src)
 
 target_link_libraries(AcousticSimulator
     PRIVATE
-    simulation_service_mock
-    simulation_service_core
-    simulation_services
-    app_config
+    simulation_core
     glfw
     glad::glad
     imgui::imgui
