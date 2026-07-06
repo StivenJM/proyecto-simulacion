@@ -1,9 +1,10 @@
 #pragma once
-#include "services/ISimulationService.h"
+#include "ISimulationService.h"
 
-namespace services {
 namespace core {
 
+// Implementacion real de la simulacion acustica.
+// Orquesta GeometryCalculator, RayTracer y DiffuseEnergySolver. (RF-01 a RF-11)
 class CoreSimulationService : public ISimulationService {
 public:
     SimulationResult runSimulation(
@@ -13,4 +14,3 @@ public:
 };
 
 } // namespace core
-} // namespace services

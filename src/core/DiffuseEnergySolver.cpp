@@ -1,8 +1,6 @@
 #include "DiffuseEnergySolver.h"
-#include <algorithm>
 #include <numeric>
 
-namespace services {
 namespace core {
 
 std::vector<TriangleEnergySample> DiffuseEnergySolver::solve(
@@ -17,46 +15,35 @@ std::vector<TriangleEnergySample> DiffuseEnergySolver::solve(
     int n = static_cast<int>(triangles.size());
     if (n == 0) return samples;
 
-    // Mapa triangleId -> absorción
     auto getAbsorption = [&](int triangleId) -> double {
-        for (const auto& surf : surfaces) {
-            for (const auto& tri : surf.triangles) {
+        for (const auto& surf : surfaces)
+            for (const auto& tri : surf.triangles)
                 if (tri.id == triangleId) return surf.absorption;
-            }
-        }
         return 0.1;
     };
 
-    // Energía inicial distribuida equitativamente entre todos los triángulos
     std::vector<double> energy(n, initialEnergy / n);
 
     const int timeStepMs = 10;
 
     for (int timeMs = 0; timeMs <= config.durationMs; timeMs += timeStepMs) {
-        std::vector<double> next(n, 0.0);
+        double total = std::accumulate(energy.begin(), energy.end(), 0.0);
+        if (total < 1e-9) break;
 
-        double totalEnergy = std::accumulate(energy.begin(), energy.end(), 0.0);
-        if (totalEnergy < 1e-9) break;
+        std::vector<double> next(n, 0.0);
 
         for (int i = 0; i < n; i++) {
             if (energy[i] < 1e-10) continue;
 
-            // Registrar muestra de este triángulo en este instante
             samples.push_back({triangles[i].id, timeMs, energy[i]});
 
-            // Aplicar absorción de la superficie
-            double absorption    = getAbsorption(triangles[i].id);
-            double afterAbsorb   = energy[i] * (1.0 - absorption);
+            // RF-08: aplicar absorcion de la superficie
+            double afterAbsorb = energy[i] * (1.0 - getAbsorption(triangles[i].id));
 
-            // Distribuir energía restante hacia triángulos visibles
+            // RF-07: distribuir hacia triangulos visibles respetando tiempos (RF-05) y porcentajes (RF-06)
             for (int j = 0; j < n; j++) {
-                if (i == j) continue;
-                if (!diffusion.visibility[i][j]) continue;
-
-                // Solo distribuir si el sonido puede llegar dentro del tiempo restante
-                int arrivalMs = timeMs + diffusion.timesMs[i][j];
-                if (arrivalMs > config.durationMs) continue;
-
+                if (i == j || !diffusion.visibility[i][j]) continue;
+                if (timeMs + diffusion.timesMs[i][j] > config.durationMs) continue;
                 next[j] += afterAbsorb * diffusion.percentages[i][j];
             }
         }
@@ -68,4 +55,3 @@ std::vector<TriangleEnergySample> DiffuseEnergySolver::solve(
 }
 
 } // namespace core
-} // namespace services
