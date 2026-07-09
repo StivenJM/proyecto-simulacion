@@ -14,7 +14,8 @@ namespace gui {
 App::App()
     : services_(GuiComposition::createServices({})),
       scenario_(services_.scenarioService->createInitialScenario(selection_)),
-      preparationScreen_(scenario_, selection_, *services_.planeService, *services_.sourceService, *services_.receiverService)
+      preparationScreen_(scenario_, selection_, *services_.planeService, *services_.sourceService, *services_.receiverService),
+      simulationScreen_(*services_.simulationService)
 {
 }
 

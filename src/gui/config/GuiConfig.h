@@ -8,7 +8,7 @@ enum class GuiServiceProvider {
 };
 
 struct GuiConfig {
-    GuiServiceProvider serviceProvider = GuiServiceProvider::Mock;
+    GuiServiceProvider serviceProvider = GuiServiceProvider::Core;
 };
 
 }  // namespace gui

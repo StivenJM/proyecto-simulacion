@@ -122,6 +122,11 @@ const char* stateLabel(SimulationRunState state)
 
 }  // namespace
 
+SimulationScreen::SimulationScreen(ISimulationService& simulationService)
+    : simulationService_(simulationService)
+{
+}
+
 bool SimulationScreen::start(const GuiScenario& scenario)
 {
     if (state_ == SimulationRunState::Running) {
@@ -129,10 +134,18 @@ bool SimulationScreen::start(const GuiScenario& scenario)
     }
 
     elapsedSeconds_ = 0.0f;
-    state_ = SimulationRunState::Running;
-    generateRayPaths(scenario);
-    recomputeEnergy(scenario);
-    return true;
+    const SimulationResultDto result = simulationService_.start(scenario);
+    planeEnergy_.clear();
+    planeEnergy_.reserve(result.planeEnergy.size());
+    for (const SimulationPlaneEnergyDto& sample : result.planeEnergy) {
+        planeEnergy_.push_back({sample.planeId, sample.planeName, sample.energy});
+    }
+    rays_ = result.rays;
+    resultOverlay_ = result.overlay;
+    statusMessage_ = result.message;
+    state_ = result.success ? SimulationRunState::Running : SimulationRunState::Ready;
+    recomputeOverlay();
+    return result.success;
 }
 
 void SimulationScreen::restart(const GuiScenario& scenario)
@@ -149,7 +162,7 @@ void SimulationScreen::update(float deltaTime, const GuiScenario& scenario)
 
     const float simulatedDeltaTime = std::max(deltaTime, 0.0f) * simulationSpeedMultiplier_;
     elapsedSeconds_ = std::min(maxSimulationSeconds, elapsedSeconds_ + simulatedDeltaTime);
-    recomputeEnergy(scenario);
+    recomputeOverlay();
     if (elapsedSeconds_ >= maxSimulationSeconds) {
         state_ = SimulationRunState::Finished;
     }
@@ -159,6 +172,13 @@ void SimulationScreen::renderPanel(const GuiScenario& scenario)
 {
     ImGui::Begin("Simulation");
     ImGui::Text("Status: %s", stateLabel(state_));
+    if (!statusMessage_.empty()) {
+        if (state_ == SimulationRunState::Ready) {
+            ImGui::TextColored(ImVec4(1.0f, 0.35f, 0.25f, 1.0f), "%s", statusMessage_.c_str());
+        } else {
+            ImGui::TextWrapped("%s", statusMessage_.c_str());
+        }
+    }
     ImGui::Text("Time: %.2f s / %.2f s", elapsedSeconds_, maxSimulationSeconds);
     ImGui::ProgressBar(progress(), ImVec2(-1.0f, 0.0f));
 
@@ -188,13 +208,13 @@ void SimulationScreen::renderPanel(const GuiScenario& scenario)
 
     ImGui::Separator();
     if (ImGui::Checkbox("Show diffuse energy matrix on planes", &showDiffuseEnergyOnPlanes_)) {
-        recomputeEnergy(scenario);
+        recomputeOverlay();
     }
     if (ImGui::Checkbox("Show ray tracing visualization", &showRayTracing_)) {
-        recomputeEnergy(scenario);
+        recomputeOverlay();
     }
     ImGui::Text("Rays: %d total / %d active", rayCount(), activeRayCount());
-    ImGui::TextWrapped("Ray tracing and diffuse matrix data are simulated GUI scaffolds until Core is connected.");
+    ImGui::TextWrapped("Simulation data is provided by the configured GUI simulation service.");
 
     ImGui::Separator();
     const int view = viewMode_ == SimulationViewMode::External ? 0 : 1;
@@ -233,6 +253,8 @@ void SimulationScreen::reset()
     planeEnergy_.clear();
     rays_.clear();
     overlay_ = {};
+    resultOverlay_ = {};
+    statusMessage_.clear();
 }
 
 bool SimulationScreen::isStarted() const
@@ -287,117 +309,12 @@ int SimulationScreen::activeRayCount() const
     }));
 }
 
-void SimulationScreen::generateRayPaths(const GuiScenario& scenario)
+void SimulationScreen::recomputeOverlay()
 {
-    rays_.clear();
-    if (scenario.sources.empty() || scenario.planes.empty()) {
-        return;
-    }
-
-    constexpr int raysPerSource = 8;
-    constexpr int maxBounces = 4;
-    int nextRayId = 1;
-
-    for (const GuiSource& source : scenario.sources) {
-        if (!source.visible) {
-            continue;
-        }
-
-        for (int rayIndex = 0; rayIndex < raysPerSource; ++rayIndex) {
-            GuiSimulationRay ray;
-            ray.id = nextRayId++;
-            ray.sourceId = source.id;
-
-            Vec3 start = source.position;
-            float energy = 1.0f;
-            float accumulated = 0.0f;
-
-            for (int bounceIndex = 0; bounceIndex < maxBounces; ++bounceIndex) {
-                const std::size_t planeIndex = static_cast<std::size_t>((rayIndex * 2 + bounceIndex * 3) % static_cast<int>(scenario.planes.size()));
-                const GuiPlane& plane = scenario.planes[planeIndex];
-                if (!plane.visible) {
-                    continue;
-                }
-
-                int triangleId = -1;
-                const Vec3 end = triangleOrPlaneSamplePoint(plane, rayIndex, bounceIndex, triangleId);
-                const float rawDuration = std::max(0.08f, segmentTravelTime(start, end) * 18.0f);
-                const float endTime = std::min(maxSimulationSeconds, accumulated + rawDuration);
-                const float absorptionLoss = 0.58f + clamp01(plane.absorption) * 0.24f;
-                const float endEnergy = energy * absorptionLoss;
-
-                ray.segments.push_back({start, end, plane.id, triangleId, accumulated, endTime, energy, endEnergy});
-                start = end;
-                accumulated = endTime;
-                energy = endEnergy;
-
-                if (accumulated >= maxSimulationSeconds || energy < 0.04f) {
-                    break;
-                }
-            }
-
-            if (!ray.segments.empty()) {
-                ray.activePosition = ray.segments.front().start;
-                ray.activeEnergy = 1.0f;
-                ray.activeRadius = 0.11f;
-                ray.alive = true;
-                rays_.push_back(ray);
-            }
-        }
-    }
-}
-
-void SimulationScreen::recomputeEnergy(const GuiScenario& scenario)
-{
-    planeEnergy_.clear();
-    overlay_ = {};
+    overlay_ = resultOverlay_;
     overlay_.active = state_ != SimulationRunState::Ready;
     overlay_.showDiffuseEnergy = showDiffuseEnergyOnPlanes_;
     overlay_.showRayTracing = showRayTracing_;
-
-    float maxEnergy = 0.0001f;
-    std::vector<float> rawPlaneEnergy;
-    rawPlaneEnergy.reserve(scenario.planes.size());
-
-    for (const GuiPlane& plane : scenario.planes) {
-        float totalEnergy = 0.0f;
-        int sampleCount = 0;
-
-        if (!plane.triangles.empty()) {
-            for (const GuiTriangle& triangle : plane.triangles) {
-                if (!triangle.visible) {
-                    continue;
-                }
-
-                const float energy = simulatedEnergyAt(triangle.centroid, plane, scenario, progress());
-                if (showDiffuseEnergyOnPlanes_) {
-                    overlay_.triangleEnergy.push_back({plane.id, triangle.id, energy});
-                }
-                totalEnergy += energy;
-                ++sampleCount;
-            }
-        } else {
-            totalEnergy = simulatedEnergyAt(planeSamplePoint(plane), plane, scenario, progress());
-            sampleCount = 1;
-        }
-
-        const float planeLevel = sampleCount > 0 ? totalEnergy / static_cast<float>(sampleCount) : 0.0f;
-        rawPlaneEnergy.push_back(planeLevel);
-        maxEnergy = std::max(maxEnergy, planeLevel);
-    }
-
-    for (std::size_t index = 0; index < scenario.planes.size(); ++index) {
-        const GuiPlane& plane = scenario.planes[index];
-        const float normalized = clamp01(rawPlaneEnergy[index] / maxEnergy);
-        planeEnergy_.push_back({plane.id, plane.name.empty() ? "Plane " + std::to_string(plane.id) : plane.name, normalized});
-        if (showDiffuseEnergyOnPlanes_) {
-            overlay_.planeEnergy.push_back({plane.id, normalized});
-        }
-    }
-
-    for (RenderTriangleEnergy& sample : overlay_.triangleEnergy) {
-        sample.energy = clamp01(sample.energy / maxEnergy);
-    }
 
     recomputeRays(progress());
 }

@@ -2,6 +2,7 @@
 
 #include "gui/entities/GuiScenario.h"
 #include "gui/rendering/RenderTypes.h"
+#include "gui/services/ISimulationService.h"
 #include "gui/services/dtos/SimulationDtos.h"
 
 #include <string>
@@ -28,6 +29,8 @@ struct SimulatedPlaneEnergy {
 
 class SimulationScreen {
 public:
+    explicit SimulationScreen(ISimulationService& simulationService);
+
     bool start(const GuiScenario& scenario);
     void restart(const GuiScenario& scenario);
     void update(float deltaTime, const GuiScenario& scenario);
@@ -45,10 +48,10 @@ public:
     int activeRayCount() const;
 
 private:
-    void generateRayPaths(const GuiScenario& scenario);
-    void recomputeEnergy(const GuiScenario& scenario);
+    void recomputeOverlay();
     void recomputeRays(float progress);
 
+    ISimulationService& simulationService_;
     SimulationRunState state_ = SimulationRunState::Ready;
     SimulationViewMode viewMode_ = SimulationViewMode::External;
     float elapsedSeconds_ = 0.0f;
@@ -58,6 +61,8 @@ private:
     std::vector<SimulatedPlaneEnergy> planeEnergy_;
     std::vector<GuiSimulationRay> rays_;
     RenderSimulationOverlay overlay_;
+    RenderSimulationOverlay resultOverlay_;
+    std::string statusMessage_;
 };
 
 }  // namespace gui
