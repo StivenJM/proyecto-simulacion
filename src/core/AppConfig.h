@@ -5,7 +5,7 @@ namespace core {
 
 // Configuracion global de la aplicacion.
 struct AppConfig {
-    ServiceMode serviceMode        = ServiceMode::Mock;
+    ServiceMode serviceMode        = ServiceMode::Core;
     int         defaultDurationMs  = 1000;
     double      defaultSoundSpeed  = 340.0;
     int         defaultRayCount    = 642;

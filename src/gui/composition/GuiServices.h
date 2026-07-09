@@ -3,6 +3,7 @@
 #include "gui/services/IPlaneService.h"
 #include "gui/services/IReceiverService.h"
 #include "gui/services/IScenarioService.h"
+#include "gui/services/ISimulationService.h"
 #include "gui/services/ISourceService.h"
 
 #include <memory>
@@ -14,6 +15,7 @@ struct GuiServices {
     std::unique_ptr<ISourceService> sourceService;
     std::unique_ptr<IReceiverService> receiverService;
     std::unique_ptr<IScenarioService> scenarioService;
+    std::unique_ptr<ISimulationService> simulationService;
 };
 
 }  // namespace gui

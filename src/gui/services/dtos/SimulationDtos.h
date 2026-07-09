@@ -1,13 +1,21 @@
 #pragma once
 
 #include "gui/math/MathTypes.h"
+#include "gui/rendering/RenderTypes.h"
 
+#include <string>
 #include <vector>
 
 namespace gui {
 
 struct SimulationStateDto {
     bool running = false;
+};
+
+struct SimulationPlaneEnergyDto {
+    int planeId = 0;
+    std::string planeName;
+    float energy = 0.0f;
 };
 
 struct GuiRaySegment {
@@ -30,6 +38,16 @@ struct GuiSimulationRay {
     float activeRadius = 0.0f;
     bool alive = false;
     bool visible = true;
+};
+
+struct SimulationResultDto {
+    SimulationStateDto state;
+    bool success = false;
+    std::string message;
+    float durationSeconds = 1.0f;
+    std::vector<SimulationPlaneEnergyDto> planeEnergy;
+    std::vector<GuiSimulationRay> rays;
+    RenderSimulationOverlay overlay;
 };
 
 }  // namespace gui

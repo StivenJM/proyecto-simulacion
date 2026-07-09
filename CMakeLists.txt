@@ -46,6 +46,8 @@ add_executable(AcousticSimulator
     src/gui/factories/ReceiverServiceFactory.h
     src/gui/factories/ScenarioServiceFactory.cpp
     src/gui/factories/ScenarioServiceFactory.h
+    src/gui/factories/SimulationServiceFactory.cpp
+    src/gui/factories/SimulationServiceFactory.h
     src/gui/factories/SourceServiceFactory.cpp
     src/gui/factories/SourceServiceFactory.h
     src/gui/input/CameraController.cpp
@@ -93,14 +95,24 @@ add_executable(AcousticSimulator
     src/gui/services/implementations/core/CoreReceiverService.h
     src/gui/services/implementations/core/CoreScenarioService.cpp
     src/gui/services/implementations/core/CoreScenarioService.h
+    src/gui/services/implementations/core/CoreSimulationService.cpp
+    src/gui/services/implementations/core/CoreSimulationService.h
     src/gui/services/implementations/core/CoreSourceService.cpp
     src/gui/services/implementations/core/CoreSourceService.h
+    src/gui/services/implementations/core/mappers/ResultMapper.cpp
+    src/gui/services/implementations/core/mappers/ResultMapper.h
+    src/gui/services/implementations/core/mappers/ScenarioMapper.cpp
+    src/gui/services/implementations/core/mappers/ScenarioMapper.h
+    src/gui/services/implementations/core/mappers/VectorMapper.cpp
+    src/gui/services/implementations/core/mappers/VectorMapper.h
     src/gui/services/implementations/mock/MockPlaneService.cpp
     src/gui/services/implementations/mock/MockPlaneService.h
     src/gui/services/implementations/mock/MockReceiverService.cpp
     src/gui/services/implementations/mock/MockReceiverService.h
     src/gui/services/implementations/mock/MockScenarioService.cpp
     src/gui/services/implementations/mock/MockScenarioService.h
+    src/gui/services/implementations/mock/MockSimulationService.cpp
+    src/gui/services/implementations/mock/MockSimulationService.h
     src/gui/services/implementations/mock/MockSourceService.cpp
     src/gui/services/implementations/mock/MockSourceService.h
 )
