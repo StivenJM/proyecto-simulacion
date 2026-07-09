@@ -1,5 +1,7 @@
 #include "MockSourceService.h"
 
+#include <algorithm>
+#include <cmath>
 #include <string>
 
 namespace gui {
@@ -14,6 +16,15 @@ GuiSource* findSource(GuiScenario& scenario, int sourceId)
     }
 
     return nullptr;
+}
+
+float sanitizeSourceEnergy(float energy)
+{
+    if (!std::isfinite(energy)) {
+        return 0.0f;
+    }
+
+    return std::clamp(energy, 0.0f, 1000.0f);
 }
 
 }  // namespace
@@ -47,6 +58,16 @@ bool MockSourceService::updateSourceName(GuiScenario& scenario, int sourceId, co
 {
     if (GuiSource* source = findSource(scenario, sourceId)) {
         source->name = name;
+        return true;
+    }
+
+    return false;
+}
+
+bool MockSourceService::updateSourceEnergy(GuiScenario& scenario, int sourceId, float energy)
+{
+    if (GuiSource* source = findSource(scenario, sourceId)) {
+        source->energy = sanitizeSourceEnergy(energy);
         return true;
     }
 

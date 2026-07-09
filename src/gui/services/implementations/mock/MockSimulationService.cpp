@@ -69,7 +69,7 @@ float simulatedEnergyForPlane(const GuiPlane& plane, const GuiScenario& scenario
         const float sourceDistance = distance(point, source.position);
         const float attenuation = 1.0f / (1.0f + sourceDistance * sourceDistance * 0.18f);
         const float absorption = 1.0f - clamp01(plane.absorption) * 0.75f;
-        energy += attenuation * absorption;
+        energy += source.energy * attenuation * absorption;
     }
 
     return energy;
@@ -100,7 +100,7 @@ SimulationResultDto MockSimulationService::start(const GuiScenario& scenario)
             ray.sourceId = source.id;
 
             Vec3 start = source.position;
-            float energy = 1.0f;
+            float energy = source.energy;
             float accumulated = 0.0f;
 
             for (int bounceIndex = 0; bounceIndex < maxBounces; ++bounceIndex) {
@@ -133,7 +133,7 @@ SimulationResultDto MockSimulationService::start(const GuiScenario& scenario)
 
             if (!ray.segments.empty()) {
                 ray.activePosition = ray.segments.front().start;
-                ray.activeEnergy = 1.0f;
+                ray.activeEnergy = source.energy;
                 ray.activeRadius = 0.11f;
                 ray.alive = true;
                 result.rays.push_back(ray);

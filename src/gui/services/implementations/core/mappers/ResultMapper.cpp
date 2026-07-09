@@ -45,6 +45,11 @@ float distance(Vec3 a, Vec3 b)
     return std::sqrt(dx * dx + dy * dy + dz * dz);
 }
 
+bool samePoint(Vec3 a, Vec3 b)
+{
+    return distance(a, b) <= 0.0001f;
+}
+
 }  // namespace
 
 SimulationResultDto toGuiResult(const core::SimulationResult& result, const GuiScenario& scenario)
@@ -85,22 +90,39 @@ SimulationResultDto toGuiResult(const core::SimulationResult& result, const GuiS
     }
 
     int nextRayId = 1;
+    GuiSimulationRay* currentRay = nullptr;
+    Vec3 previousEnd{};
+    float previousEndTimeSeconds = 0.0f;
+    float previousEndEnergy = 0.0f;
+
     for (const core::ReflectionRaySegment& segment : result.reflectionRays) {
         const Vec3 start = toGui(segment.from);
         const Vec3 end = toGui(segment.to);
         const float endTimeSeconds = clamp01(static_cast<float>(segment.timeMs) / 1000.0f);
         const float travelSeconds = std::max(0.04f, distance(start, end) / 340.0f);
-        const float startTimeSeconds = std::max(0.0f, endTimeSeconds - travelSeconds);
+        const bool continuesPreviousRay = currentRay != nullptr && samePoint(start, previousEnd);
+        const float startTimeSeconds = continuesPreviousRay
+            ? previousEndTimeSeconds
+            : std::max(0.0f, endTimeSeconds - travelSeconds);
         const float energy = clamp01(static_cast<float>(segment.energy));
+        const float startEnergy = continuesPreviousRay ? previousEndEnergy : energy;
+        const float endEnergy = energy * 0.72f;
 
-        GuiSimulationRay ray;
-        ray.id = nextRayId++;
-        ray.segments.push_back({start, end, -1, -1, startTimeSeconds, std::max(startTimeSeconds + 0.04f, endTimeSeconds), energy, energy * 0.72f});
-        ray.activePosition = start;
-        ray.activeEnergy = energy;
-        ray.activeRadius = 0.018f + energy * 0.115f;
-        ray.alive = true;
-        mapped.rays.push_back(ray);
+        if (!continuesPreviousRay) {
+            GuiSimulationRay ray;
+            ray.id = nextRayId++;
+            ray.activePosition = start;
+            ray.activeEnergy = energy;
+            ray.activeRadius = 0.018f + energy * 0.115f;
+            ray.alive = true;
+            mapped.rays.push_back(ray);
+            currentRay = &mapped.rays.back();
+        }
+
+        currentRay->segments.push_back({start, end, -1, -1, startTimeSeconds, std::max(startTimeSeconds + 0.04f, endTimeSeconds), startEnergy, endEnergy});
+        previousEnd = end;
+        previousEndTimeSeconds = std::max(startTimeSeconds + 0.04f, endTimeSeconds);
+        previousEndEnergy = endEnergy;
     }
 
     mapped.overlay.active = result.success;
