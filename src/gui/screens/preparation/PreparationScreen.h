@@ -59,6 +59,7 @@ public:
     void selectTriangle(int triangleId);
     bool updateSelectedSourcePosition(Vec3 position);
     bool updateSelectedSourceName(const std::string& name);
+    bool updateSelectedSourceEnergy(float energy);
     bool updateSelectedSourceVisibility(bool visible);
     bool updateSelectedReceiverPosition(Vec3 position);
     bool updateSelectedReceiverName(const std::string& name);

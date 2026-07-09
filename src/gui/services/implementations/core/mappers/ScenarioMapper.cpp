@@ -40,7 +40,7 @@ core::ScenarioData toCoreScenario(const GuiScenario& scenario)
 
     for (const GuiSource& source : scenario.sources) {
         if (source.visible) {
-            mapped.sources.push_back({source.id, toCore(source.position), 1.0});
+            mapped.sources.push_back({source.id, toCore(source.position), static_cast<double>(source.energy)});
         }
     }
 

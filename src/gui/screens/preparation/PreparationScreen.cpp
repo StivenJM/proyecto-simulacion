@@ -397,6 +397,11 @@ bool PreparationScreen::updateSelectedSourceName(const std::string& name)
     return sourceService_.updateSourceName(scenario_, selectedSourceId(), name);
 }
 
+bool PreparationScreen::updateSelectedSourceEnergy(float energy)
+{
+    return sourceService_.updateSourceEnergy(scenario_, selectedSourceId(), energy);
+}
+
 bool PreparationScreen::updateSelectedSourceVisibility(bool visible)
 {
     return sourceService_.updateSourceVisibility(scenario_, selectedSourceId(), visible);

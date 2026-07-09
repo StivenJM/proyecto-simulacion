@@ -43,6 +43,11 @@ void SourcePropertiesPanel::render(PreparationScreen& screen)
         screen.updateSelectedSourceVisibility(visible);
     }
 
+    float energy = source->energy;
+    if (ImGui::DragFloat("Energy", &energy, 0.1f, 0.0f, 1000.0f, "%.2f")) {
+        screen.updateSelectedSourceEnergy(energy);
+    }
+
     float position[3] = {source->position.x, source->position.y, source->position.z};
     if (ImGui::InputFloat3("Position", position)) {
         screen.updateSelectedSourcePosition({position[0], position[1], position[2]});
