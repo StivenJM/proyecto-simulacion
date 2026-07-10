@@ -45,6 +45,7 @@ struct SimulationResultDto {
     bool success = false;
     std::string message;
     float durationSeconds = 1.0f;
+    int configuredRayCount = 0;
     std::vector<SimulationPlaneEnergyDto> planeEnergy;
     std::vector<GuiSimulationRay> rays;
     RenderSimulationOverlay overlay;

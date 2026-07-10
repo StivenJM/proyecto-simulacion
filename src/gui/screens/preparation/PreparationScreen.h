@@ -34,10 +34,12 @@ public:
     std::size_t draftPointCount() const;
     bool canFinalizeDraft() const;
     bool hasActiveDraft() const;
+    bool isGeneralSelected() const;
     int selectedPlaneId() const;
     int selectedSourceId() const;
     int selectedReceiverId() const;
     int selectedTriangleId() const;
+    void selectGeneral();
     void selectPlane(int planeId);
     void selectSource(int sourceId);
     void selectReceiver(int receiverId);
@@ -64,6 +66,8 @@ public:
     bool updateSelectedReceiverPosition(Vec3 position);
     bool updateSelectedReceiverName(const std::string& name);
     bool updateSelectedReceiverVisibility(bool visible);
+    int rayCount() const;
+    void updateRayCount(int rayCount);
     const GuiPlaneDraft& draft() const;
 
 private:

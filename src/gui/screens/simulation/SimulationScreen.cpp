@@ -143,6 +143,7 @@ bool SimulationScreen::start(const GuiScenario& scenario)
     rays_ = result.rays;
     resultOverlay_ = result.overlay;
     statusMessage_ = result.message;
+    configuredRayCount_ = result.configuredRayCount;
     state_ = result.success ? SimulationRunState::Running : SimulationRunState::Ready;
     recomputeOverlay();
     return result.success;
@@ -213,6 +214,9 @@ void SimulationScreen::renderPanel(const GuiScenario& scenario)
     if (ImGui::Checkbox("Show ray tracing visualization", &showRayTracing_)) {
         recomputeOverlay();
     }
+    if (configuredRayCount_ > 0) {
+        ImGui::Text("Configured rays: %d", configuredRayCount_);
+    }
     ImGui::Text("Rays: %d total / %d active", rayCount(), activeRayCount());
     ImGui::TextWrapped("Simulation data is provided by the configured GUI simulation service.");
 
@@ -255,6 +259,7 @@ void SimulationScreen::reset()
     overlay_ = {};
     resultOverlay_ = {};
     statusMessage_.clear();
+    configuredRayCount_ = 0;
 }
 
 bool SimulationScreen::isStarted() const

@@ -1,5 +1,6 @@
 #include "PlaneEditorPanel.h"
 
+#include "GeneralPropertiesPanel.h"
 #include "PlaneCreationPanel.h"
 #include "PlanePropertiesPanel.h"
 #include "ReceiverPropertiesPanel.h"
@@ -12,6 +13,7 @@ namespace gui {
 void PlaneEditorPanel::render(PreparationScreen& screen)
 {
     PlaneCreationPanel creationPanel;
+    GeneralPropertiesPanel generalPropertiesPanel;
     PlanePropertiesPanel propertiesPanel;
     ReceiverPropertiesPanel receiverPropertiesPanel;
     SourcePropertiesPanel sourcePropertiesPanel;
@@ -30,7 +32,9 @@ void PlaneEditorPanel::render(PreparationScreen& screen)
     ImGui::TextUnformatted("Object Properties");
     ImGui::TextDisabled("Selected scenario object details.");
 
-    if (screen.selectedSource() != nullptr) {
+    if (screen.isGeneralSelected()) {
+        generalPropertiesPanel.render(screen);
+    } else if (screen.selectedSource() != nullptr) {
         sourcePropertiesPanel.render(screen);
     } else if (screen.selectedReceiver() != nullptr) {
         receiverPropertiesPanel.render(screen);

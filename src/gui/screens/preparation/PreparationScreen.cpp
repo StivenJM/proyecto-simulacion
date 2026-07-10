@@ -272,6 +272,11 @@ bool PreparationScreen::hasActiveDraft() const
     return draft_.active;
 }
 
+bool PreparationScreen::isGeneralSelected() const
+{
+    return selection_.isGeneralSelected();
+}
+
 int PreparationScreen::selectedPlaneId() const
 {
     return selection_.selectedPlaneId();
@@ -290,6 +295,11 @@ int PreparationScreen::selectedReceiverId() const
 int PreparationScreen::selectedTriangleId() const
 {
     return selection_.selectedTriangleId();
+}
+
+void PreparationScreen::selectGeneral()
+{
+    selection_.selectGeneral();
 }
 
 void PreparationScreen::selectPlane(int planeId)
@@ -420,6 +430,16 @@ bool PreparationScreen::updateSelectedReceiverName(const std::string& name)
 bool PreparationScreen::updateSelectedReceiverVisibility(bool visible)
 {
     return receiverService_.updateReceiverVisibility(scenario_, selectedReceiverId(), visible);
+}
+
+int PreparationScreen::rayCount() const
+{
+    return scenario_.simulationConfig.rayCount;
+}
+
+void PreparationScreen::updateRayCount(int rayCount)
+{
+    scenario_.simulationConfig.rayCount = rayCount < 1 ? 1 : rayCount;
 }
 
 const GuiPlaneDraft& PreparationScreen::draft() const

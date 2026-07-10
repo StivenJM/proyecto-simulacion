@@ -196,7 +196,9 @@ void App::updateWindowTitle()
 {
     std::string title = "Acoustic Simulator - ";
     if (mode_ == AppMode::Preparation) {
-        if (selection_.isSourceSelected()) {
+        if (selection_.isGeneralSelected()) {
+            title += "Preparation Mode [General] [Tab: Simulation]";
+        } else if (selection_.isSourceSelected()) {
             title += "Preparation Mode [Source " + std::to_string(preparationScreen_.selectedSourceId()) + "] [Tab: Simulation]";
         } else if (selection_.isReceiverSelected()) {
             title += "Preparation Mode [Receiver " + std::to_string(preparationScreen_.selectedReceiverId()) + "] [Tab: Simulation]";

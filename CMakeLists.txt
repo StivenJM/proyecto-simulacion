@@ -38,6 +38,7 @@ add_executable(AcousticSimulator
     src/gui/entities/GuiReceiver.h
     src/gui/entities/GuiScenario.h
     src/gui/entities/GuiSelection.h
+    src/gui/entities/GuiSimulationConfig.h
     src/gui/entities/GuiSource.h
     src/gui/entities/GuiTriangle.h
     src/gui/factories/PlaneServiceFactory.cpp
@@ -69,6 +70,8 @@ add_executable(AcousticSimulator
     src/gui/screens/preparation/components/PlaneEditorControls.h
     src/gui/screens/preparation/components/SceneHierarchyPanel.cpp
     src/gui/screens/preparation/components/SceneHierarchyPanel.h
+    src/gui/screens/preparation/components/GeneralPropertiesPanel.cpp
+    src/gui/screens/preparation/components/GeneralPropertiesPanel.h
     src/gui/screens/preparation/components/PlaneCreationPanel.cpp
     src/gui/screens/preparation/components/PlaneCreationPanel.h
     src/gui/screens/preparation/components/PlanePropertiesPanel.cpp

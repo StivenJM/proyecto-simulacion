@@ -63,6 +63,7 @@ private:
     RenderSimulationOverlay overlay_;
     RenderSimulationOverlay resultOverlay_;
     std::string statusMessage_;
+    int configuredRayCount_ = 0;
 };
 
 }  // namespace gui
