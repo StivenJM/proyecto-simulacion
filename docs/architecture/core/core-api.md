@@ -1,6 +1,8 @@
-# Core API — Guía de Uso
+# Core API interna — Guía de uso
 
-Todos los archivos del core viven en `src/core/`. El namespace es `core::`.
+Todos los archivos del Core viven en `src/core/`, usan el namespace `core::` y se compilan dentro de la librería estática `simulation_core`.
+
+Esta API es interna del proyecto. Está documentada para la GUI, tests y mantenimiento del repositorio; no es un SDK externo instalable ni un contrato versionado para otros proyectos.
 
 ---
 
@@ -19,6 +21,8 @@ Para usar el Core real en lugar del Mock:
 ```cpp
 cfg.serviceMode = core::ServiceMode::Core;
 ```
+
+En la aplicación GUI esta selección se encapsula en factories y adaptadores bajo `src/gui/services/implementations/core`; las pantallas no deberían construir servicios Core directamente.
 
 ---
 
@@ -48,7 +52,7 @@ scenario.surfaces.push_back(surface);
 core::SourceData source;
 source.id       = 0;
 source.position = {1.5, 1.5, 1.0};
-source.energy   = 1.0;
+source.energy   = 120.0;
 scenario.sources.push_back(source);   // RF-14
 
 core::ReceiverData receiver;
@@ -75,9 +79,29 @@ if (result.success) {
 }
 ```
 
+`rayCount` es una configuración global de la simulación. `RayTracer` genera direcciones por subdivisión de icosaedro, por lo que ajusta el valor pedido a un conteo válido de la forma `2 + 10*n^2`.
+
 ---
 
-## Funciones por Requerimiento
+## Flujo interno
+
+```mermaid
+flowchart TD
+    Input[ScenarioData + SimulationConfig] --> Service[CoreSimulationService]
+    Service --> Geometry[GeometryCalculator]
+    Service --> RayTracer[RayTracer]
+    Service --> Diffusion[DiffuseEnergySolver]
+    RayTracer --> Rays[reflectionRays]
+    RayTracer --> ReceiverEnergy[receiverEnergy]
+    Diffusion --> TriangleEnergy[triangleEnergy]
+    Geometry --> Matrix[DiffusionMatrixData]
+    Rays --> Result[SimulationResult]
+    ReceiverEnergy --> Result
+    TriangleEnergy --> Result
+    Matrix --> Result
+```
+
+## Funciones por requerimiento
 
 ### RF-01 — Identificación de triángulos
 
@@ -194,6 +218,8 @@ for (const auto& sample : traceOut.receiverEnergy) {
 }
 ```
 
+`RayTracer` reparte `SourceData::energy` entre las direcciones generadas. En cada impacto aplica absorción de superficie, registra segmentos de reflexión y descuenta la porción destinada a difusión según `SimulationConfig::diffusionCoefficient`.
+
 ---
 
 ### RF-10 — Límite temporal
@@ -233,3 +259,17 @@ config.durationMs = 1000; // ninguna transición se registra después de 1000 ms
 | `DiffuseEnergySolver.h/.cpp` | RF-07, RF-08, RF-10 |
 | `CoreSimulationService.h/.cpp` | Orquesta todo (RF-01 a RF-11) |
 | `MockSimulationService.h/.cpp` | Datos falsos para desarrollo GUI |
+
+## Integración desde GUI
+
+La GUI debe entrar al Core por adaptadores, no desde pantallas:
+
+| GUI | Core |
+|---|---|
+| `GuiScenario::planes` | `core::SurfaceData` + `core::TriangleData` |
+| `GuiScenario::sources` | `core::SourceData` |
+| `GuiScenario::receivers` | `core::ReceiverData` |
+| `GuiScenario::simulationConfig.rayCount` | `core::SimulationConfig::rayCount` |
+| `SimulationResultDto` | Resultado mapeado desde `core::SimulationResult` |
+
+Los mappers viven en `src/gui/services/implementations/core/mappers` para evitar que los tipos `core::` se filtren hacia `src/gui/screens`, `src/gui/entities` o interfaces públicas GUI.

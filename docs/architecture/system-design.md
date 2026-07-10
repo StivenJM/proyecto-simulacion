@@ -1,40 +1,38 @@
 # Diseño del Sistema
 
-Este documento describe la arquitectura general del simulador acustico 3D. La decision principal es separar GUI, Core y Tests para que cada area pueda avanzar sin depender de detalles internos de las otras.
+El simulador acústico 3D está organizado en dos módulos principales: una GUI orientada a interacción y visualización, y un Core interno orientado a cálculo. La integración se hace mediante adaptadores y mappers para que las pantallas no conozcan tipos internos del Core y el Core no dependa de OpenGL ni de la interfaz.
 
-La GUI usa una Clean Architecture propia dentro de `src/gui`. Esa arquitectura no reemplaza al Core: define como la GUI organiza su dominio visual, sus pantallas, sus servicios internos y sus futuros adaptadores hacia el Core.
-
-## Vista General
+## Vista general
 
 ```mermaid
-flowchart TD
-    User[Usuario] --> GUI[GUI]
-    GUI --> GuiDomain[Dominio GUI]
-    GUI --> GuiServices[Servicios GUI]
-    GuiServices --> GuiDtos[DTOs GUI]
-    GuiDtos --> CoreAdapter[Adaptador hacia Core]
-    CoreAdapter --> Core[Core de simulacion]
-    Core --> CoreResults[Resultados de simulacion]
-    CoreResults --> CoreAdapter
-    CoreAdapter --> GuiDtos
-    GuiDtos --> GuiDomain
-    GuiDomain --> GUI
-    Tests[Tests] --> Core
+flowchart LR
+    User[Usuario] --> Screens[GUI screens]
+    Screens --> GuiDomain[Dominio GUI]
+    Screens --> GuiServices[Interfaces de servicios GUI]
+    GuiServices --> CoreAdapters[Adapters + mappers GUI-Core]
+    CoreAdapters --> CoreContracts[Contratos core::]
+    CoreContracts --> SimulationCore[simulation_core]
+    SimulationCore --> CoreResults[SimulationResult]
+    CoreResults --> CoreAdapters
+    CoreAdapters --> GuiDtos[DTOs GUI]
+    GuiDtos --> Screens
+    Tests[Tests] --> SimulationCore
 ```
 
 ## Responsabilidades
 
-| Area | Responsabilidad | No debe encargarse de |
+| Área | Responsabilidad | No debe encargarse de |
 |---|---|---|
-| GUI | Visualizacion 3D, pantallas, input, dominio visual y adaptacion de datos para renderizar | Calculos fisicos, ray tracing real o reglas internas del Core |
-| Core | Simulacion acustica, geometria real, ray tracing, difusion, matrices y resultados | Ventanas, OpenGL, controles visuales o estado de pantallas |
-| Tests | Validar reglas del Core y contratos estables | Abrir ventanas o depender de OpenGL |
+| GUI | Visualización 3D, edición del escenario, configuración de simulación, input, pantallas y dominio visual. | Cálculo físico, ray tracing real o reglas internas del Core. |
+| Adaptadores GUI-Core | Convertir `GuiScenario`/DTOs a `core::ScenarioData` y `core::SimulationConfig`, ejecutar el Core y mapear resultados a DTOs GUI. | Filtrar tipos Core hacia contratos públicos de la GUI. |
+| Core | Simulación acústica, geometría, ray tracing, difusión, matrices y resultados. | Ventanas, OpenGL, ImGui, controles visuales o estado de pantallas. |
+| Tests | Validar reglas del Core y contratos estables. | Abrir ventanas o depender de OpenGL. |
 
-## Arquitectura General
+## Arquitectura general
 
 ```mermaid
 flowchart LR
-    subgraph GUI[Modulo GUI]
+    subgraph GUI[Módulo GUI]
         GuiEntities[gui/entities]
         GuiScreens[gui/screens]
         GuiRendering[gui/rendering]
@@ -42,19 +40,21 @@ flowchart LR
         GuiServicesLayer[gui/services]
         GuiFactories[gui/factories]
         GuiComposition[gui/composition]
+        GuiUi[gui/ui]
         GuiConfig[gui/config]
     end
 
-    subgraph Core[Modulo Core]
-        CoreModel[Modelo geometrico]
+    subgraph Core[Módulo Core]
+        CoreContracts[SimulationTypes + ISimulationService]
+        CoreModel[Modelo geométrico]
         RayTracing[Ray tracing]
-        Diffusion[Matrices y difusion]
-        Simulation[Simulacion]
+        Diffusion[Matrices y difusión]
+        Simulation[CoreSimulationService]
     end
 
-    subgraph IO[Modulo IO]
-        ScenarioFiles[Archivos de escenario]
-        ResultExport[Exportacion de resultados]
+    subgraph Build[Build]
+        CoreLib[simulation_core]
+        AppExe[AcousticSimulator]
     end
 
     GuiComposition --> GuiFactories
@@ -64,11 +64,16 @@ flowchart LR
     GuiScreens --> GuiServicesLayer
     GuiRendering --> GuiEntities
     GuiInput --> GuiScreens
-    GuiServicesLayer -. futuro adapter .-> Core
-    IO --> Core
+    GuiServicesLayer --> CoreAdapter[services/implementations/core]
+    CoreAdapter --> CoreContracts
+    CoreContracts --> Simulation
+    Simulation --> RayTracing
+    Simulation --> Diffusion
+    Simulation --> CoreModel
+    CoreLib --> AppExe
 ```
 
-## Estructura Recomendada
+## Estructura actual
 
 ```text
 src/
@@ -100,6 +105,7 @@ src/
       implementations/
         mock/
         core/
+          mappers/
 
     factories/
       PlaneServiceFactory.h
@@ -124,38 +130,57 @@ src/
       CameraController.h
 
   core/
-    scenario/
-    simulation/
-    geometry/
-    raytracing/
-    diffusion/
-
-  io/
-    ScenarioFile.h
-    ResultExporter.h
+    SimulationTypes.h
+    ISimulationService.h
+    ServiceFactory.h/.cpp
+    CoreSimulationService.h/.cpp
+    MockSimulationService.h/.cpp
+    GeometryCalculator.h/.cpp
+    RayTracer.h/.cpp
+    DiffuseEnergySolver.h/.cpp
 
 tests/
   core/
-  fixtures/
-
-workspace/
-  core-initial/
 ```
 
-## GUI Como Clean Architecture
+## Flujo de simulación integrado
 
-La GUI tiene su propia arquitectura porque necesita avanzar aunque el Core real todavia este en adaptacion. Las capas internas de la GUI viven dentro de `src/gui` y no son servicios globales del sistema.
+```mermaid
+sequenceDiagram
+    participant Prep as PreparationScreen
+    participant Scenario as GuiScenario
+    participant Sim as SimulationScreen
+    participant Adapter as CoreSimulationService GUI
+    participant Mapper as GUI-Core mappers
+    participant Core as simulation_core
+
+    Prep->>Scenario: edita planos, fuentes, receptores y configuración global
+    Prep->>Scenario: General / Number of rays
+    Prep->>Scenario: Source / Energy
+    Sim->>Adapter: start(GuiScenario)
+    Adapter->>Mapper: toCoreScenario(scenario)
+    Adapter->>Core: runSimulation(coreScenario, coreConfig)
+    Core-->>Adapter: SimulationResult
+    Adapter->>Mapper: toGuiResult(result, scenario)
+    Adapter-->>Sim: SimulationResultDto
+```
+
+La configuración global de rayos vive en `GuiScenario::simulationConfig` y se pasa a `core::SimulationConfig::rayCount`. La energía editable de cada fuente se mapea a `core::SourceData::energy`. La pantalla de simulación controla solo la reproducción visual del resultado; su velocidad de reproducción puede variar entre `0.001x` y `2x` sin cambiar el cálculo físico ya producido por el Core.
+
+## GUI como Clean Architecture
+
+La GUI tiene su propia arquitectura porque su dominio visual no es igual al dominio de cálculo. Las capas internas de la GUI viven dentro de `src/gui` y no son servicios globales del sistema.
 
 Regla central:
 
 - Todas las capas de la GUI trabajan con `gui/entities` como dominio visual.
 - Todo dato que entra desde afuera debe adaptarse a `gui/entities`.
 - Todo dato que sale hacia afuera debe convertirse desde `gui/entities` hacia DTOs.
-- La GUI no debe incluir tipos internos del Core ni archivos de `workspace/core-initial`.
+- La GUI no debe exponer tipos internos del Core desde sus contratos públicos.
 
-Mas detalle: `docs/architecture/gui/README.md`.
+Más detalle: `docs/architecture/gui/README.md`.
 
-## Relacion Entre GUI y Core
+## Relación entre GUI y Core
 
 ```mermaid
 sequenceDiagram
@@ -164,23 +189,36 @@ sequenceDiagram
     participant Adapter as Core Service Adapter
     participant Core as Core
 
-    Screen->>Service: solicita operacion usando dominio GUI
-    Service->>Adapter: convierte dominio GUI a DTO de frontera
-    Adapter->>Core: invoca operacion del Core
+    Screen->>Service: solicita operación usando dominio GUI
+    Service->>Adapter: delega en implementación core
+    Adapter->>Adapter: mapea dominio GUI a core::ScenarioData/config
+    Adapter->>Core: invoca simulation_core
     Core-->>Adapter: devuelve datos/resultados internos
     Adapter-->>Service: convierte resultado a DTO GUI
     Service-->>Screen: actualiza dominio GUI o devuelve resultado visual
 ```
 
-El Core puede usar clases, POO y estructuras propias como las que existen en `workspace/core-initial`. Esa implementacion queda encapsulada detras de adaptadores. La GUI no debe conocer `room`, `plane`, `triangle`, `source`, `receptor` ni punteros dinamicos del Core.
+El Core usa tipos propios bajo `namespace core`. Esa implementación queda encapsulada detrás de adaptadores ubicados en `src/gui/services/implementations/core` y mappers en `src/gui/services/implementations/core/mappers`.
 
-## Reglas De Dependencia
+## Core como API interna
+
+`simulation_core` es una librería interna del repositorio. Su API se documenta para consumo de la GUI y tests, no como contrato externo instalable. El Core procesa:
+
+- Escenario: superficies, triángulos, fuentes y receptores.
+- Fuente: posición y energía inicial.
+- Configuración: duración, velocidad del sonido, ray count global y coeficiente difuso.
+- Resultado: rayos reflejados, energía en receptores, energía por triángulo y matrices difusas.
+
+La generación de rayos se basa en subdivisión de icosaedro. Por esa razón, el conteo pedido se ajusta internamente a `2 + 10*n^2` para mantener una distribución regular sobre la esfera.
+
+## Reglas de dependencia
 
 Permitido:
 
 - `gui/screens` puede depender de `gui/entities`, `gui/services`, `gui/input` y `gui/rendering`.
 - `gui/rendering` puede depender de `gui/entities` y tipos de render.
 - `gui/services` puede depender de `gui/entities` y `gui/services/dtos`.
+- `gui/services/implementations/core` puede depender de `core::` y de mappers internos de integración.
 - `gui/factories` puede depender de `gui/config` e implementaciones de servicios GUI.
 - `gui/composition` puede construir servicios y pasarlos a `App`.
 - El Core puede depender de sus propios tipos y algoritmos.
@@ -190,32 +228,26 @@ Prohibido:
 - Core depender de `gui`.
 - Core depender de OpenGL, GLFW o GLAD.
 - Tests del Core depender de GUI/OpenGL.
-- GUI incluir archivos de `workspace/core-initial`.
 - Pantallas GUI usar directamente clases internas del Core.
+- Contratos públicos GUI devolver tipos `core::`.
 
-## Integracion Con `workspace/core-initial`
-
-El minicore en `workspace/core-initial` sirve como referencia funcional para la futura implementacion real. Contiene conceptos que deben preservarse:
-
-- Sala, planos, triangulos, fuentes y receptores.
-- Generacion de triangulos dentro de planos.
-- Ray tracing y reflexiones.
-- Matrices de distancia, tiempo, visibilidad y porcentajes.
-- Energia difusa por triangulo y tiempo.
-- Energia recibida por receptor.
-
-La adaptacion futura debe eliminar dependencias de consola, variables globales y escritura directa de archivos durante el calculo. El resultado debe volver en memoria mediante contratos estables.
-
-## Estado Actual
+## Estado actual
 
 ```mermaid
 flowchart TD
-    Current[Estado actual] --> GuiClean[GUI reorganizada con Clean Architecture]
-    Current --> MockServices[Servicios mock para avanzar la GUI]
-    Current --> CorePlaceholders[Placeholders core dentro de servicios GUI]
-    Future[Trabajo futuro] --> CoreAdapter[Adaptador real hacia Core]
-    Future --> CoreTests[Tests del Core sin OpenGL]
-    Future --> IO[Persistencia y exportacion]
+    Current[Estado actual] --> GuiClean[GUI con Clean Architecture]
+    Current --> CoreLib[Core compilado como simulation_core]
+    Current --> CoreAdapters[Adapters/mappers GUI-Core]
+    Current --> GlobalConfig[Ray count global en GuiScenario]
+    Current --> SourceEnergy[Energía editable por fuente]
+    Current --> SimulationView[Simulation screen con velocidad 0.001x a 2x]
 ```
 
-La GUI ya esta preparada para consumir servicios mock o core mediante factories y composition. La integracion real con el Core queda para una fase posterior.
+La GUI consume servicios mock o core mediante factories y composition. Cuando se usa el modo Core, la integración pasa por adaptadores y mappers; cuando se usa el modo Mock, las pantallas siguen consumiendo los mismos contratos GUI.
+
+## Más detalle
+
+- Core: `docs/architecture/core/README.md`
+- GUI: `docs/architecture/gui/README.md`
+- Uso interno del Core: `docs/core-api.md`
+- Decisiones arquitectónicas: `docs/project/adrs/`

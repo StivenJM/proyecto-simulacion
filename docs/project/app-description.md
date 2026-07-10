@@ -16,6 +16,8 @@ La aplicación debe permitir:
 
 - Crear y editar escenarios simples dentro de la aplicación.
 - Ubicar fuentes de energía y receptores en la sala.
+- Definir la energía inicial de cada fuente.
+- Configurar la cantidad global de rayos usada para muestrear direcciones de simulación.
 - Visualizar el escenario de forma interactiva en 3D.
 - Observar la simulación desde una vista externa y desde una vista interna tipo cámara.
 - Analizar rayos de reflexión dentro del escenario.
@@ -33,7 +35,7 @@ La aplicación debe permitir:
 
 ## Resultado esperado
 
-Al finalizar, la aplicación debe ofrecer una simulación funcional del comportamiento acústico en una sala 3D, incluyendo rayos de reflexión, redistribución de energía difusa y resultados observables desde el escenario. El resultado debe servir para analizar los principales hallazgos del procedimiento y respaldar el informe académico solicitado para la evaluación.
+Al finalizar, la aplicación debe ofrecer una simulación funcional del comportamiento acústico en una sala 3D, incluyendo rayos de reflexión, redistribución de energía difusa y resultados observables desde el escenario. El usuario puede preparar fuentes con energía configurable, ajustar la cantidad global de rayos y revisar la reproducción de la simulación a distintas velocidades. El resultado debe servir para analizar los principales hallazgos del procedimiento y respaldar el informe académico solicitado para la evaluación.
 
 ## Criterio de éxito
 

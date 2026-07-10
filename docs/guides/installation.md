@@ -177,48 +177,33 @@ terminal.integrated.profiles.windows
 
 # 7. Configuración CMake del proyecto
 
-## Estructura mínima esperada
+## Estructura principal esperada
 
 ```text
 Proyecto/
 ├─ CMakeLists.txt
 └─ src/
-   └─ main.cpp
+   ├─ main.cpp
+   ├─ core/
+   └─ gui/
 ```
 
 ---
 
-## Archivo CMakeLists.txt
+## Organización de build
 
-```cmake
-cmake_minimum_required(VERSION 3.20)
+El proyecto separa el Core de la GUI en CMake:
 
-project(AcousticSimulator)
+| Target | Rol |
+|---|---|
+| `simulation_core` | Librería estática interna con la simulación acústica. No depende de OpenGL. |
+| `AcousticSimulator` | Ejecutable principal con GUI, rendering e integración hacia el Core. |
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-find_package(glfw3 CONFIG REQUIRED)
-find_package(glad CONFIG REQUIRED)
-find_package(imgui CONFIG REQUIRED)
-find_package(OpenGL REQUIRED)
-
-add_executable(AcousticSimulator
-    src/main.cpp
-)
-
-target_link_libraries(AcousticSimulator
-    PRIVATE
-    glfw
-    glad::glad
-    imgui::imgui
-    OpenGL::GL
-)
-```
+`AcousticSimulator` enlaza `simulation_core` junto con GLFW, GLAD, Dear ImGui y OpenGL. Esta separación permite validar el Core sin abrir ventana y mantiene los cálculos fuera de la capa gráfica.
 
 ---
 
-## Archivo main.cpp
+## Archivo `main.cpp`
 
 El punto de entrada del proyecto debe crear la aplicación GUI y ejecutar el loop principal. El detalle de ventana, OpenGL e ImGui vive dentro de la capa GUI del proyecto.
 
