@@ -56,6 +56,8 @@ private:
     SimulationViewMode viewMode_ = SimulationViewMode::External;
     float elapsedSeconds_ = 0.0f;
     float simulationSpeedMultiplier_ = 1.0f;
+    bool editingSimulationSpeed_ = false;
+    bool focusSimulationSpeedInput_ = false;
     bool showDiffuseEnergyOnPlanes_ = true;
     bool showRayTracing_ = true;
     std::vector<SimulatedPlaneEnergy> planeEnergy_;

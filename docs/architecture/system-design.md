@@ -165,7 +165,7 @@ sequenceDiagram
     Adapter-->>Sim: SimulationResultDto
 ```
 
-La configuración global de rayos vive en `GuiScenario::simulationConfig` y se pasa a `core::SimulationConfig::rayCount`. La energía editable de cada fuente se mapea a `core::SourceData::energy`. La pantalla de simulación controla solo la reproducción visual del resultado; su velocidad de reproducción puede variar entre `0.001x` y `2x` sin cambiar el cálculo físico ya producido por el Core.
+La configuración global de rayos vive en `GuiScenario::simulationConfig` y se pasa a `core::SimulationConfig::rayCount`. La energía editable de cada fuente se mapea a `core::SourceData::energy`. La pantalla de simulación controla solo la reproducción visual del resultado; su velocidad de reproducción puede variar entre `0.001x` y `2x` sin cambiar el cálculo físico ya producido por el Core. El control usa escala logarítmica para priorizar velocidades pequeñas y permite entrada manual para valores precisos.
 
 ## GUI como Clean Architecture
 

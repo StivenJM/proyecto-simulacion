@@ -90,6 +90,15 @@ const char* stateLabel(SimulationRunState state)
     return "Ready";
 }
 
+float sanitizeSimulationSpeed(float value)
+{
+    if (!std::isfinite(value)) {
+        return 1.0f;
+    }
+
+    return std::clamp(value, minSimulationSpeedMultiplier, maxSimulationSpeedMultiplier);
+}
+
 }  // namespace
 
 SimulationScreen::SimulationScreen(ISimulationService& simulationService)
@@ -153,20 +162,30 @@ void SimulationScreen::renderPanel(const GuiScenario& scenario)
     ImGui::Text("Time: %.2f s / %.2f s", elapsedSeconds_, maxSimulationSeconds);
     ImGui::ProgressBar(progress(), ImVec2(-1.0f, 0.0f));
 
-    ImGui::SliderFloat("Simulation speed", &simulationSpeedMultiplier_, minSimulationSpeedMultiplier, maxSimulationSpeedMultiplier, "%.3fx");
-    simulationSpeedMultiplier_ = std::clamp(simulationSpeedMultiplier_, minSimulationSpeedMultiplier, maxSimulationSpeedMultiplier);
-    if (ImGui::Button("0.5x")) {
-        simulationSpeedMultiplier_ = 0.5f;
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("1x")) {
-        simulationSpeedMultiplier_ = 1.0f;
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("2x")) {
-        simulationSpeedMultiplier_ = 2.0f;
-    }
+    if (editingSimulationSpeed_) {
+        if (focusSimulationSpeedInput_) {
+            ImGui::SetKeyboardFocusHere();
+            focusSimulationSpeedInput_ = false;
+        }
 
+        if (ImGui::InputFloat("Simulation speed", &simulationSpeedMultiplier_, 0.001f, 0.1f, "%.3fx", ImGuiInputTextFlags_EnterReturnsTrue)) {
+            simulationSpeedMultiplier_ = sanitizeSimulationSpeed(simulationSpeedMultiplier_);
+            editingSimulationSpeed_ = false;
+        }
+        if (ImGui::IsItemDeactivatedAfterEdit()) {
+            simulationSpeedMultiplier_ = sanitizeSimulationSpeed(simulationSpeedMultiplier_);
+            editingSimulationSpeed_ = false;
+        }
+    } else {
+        ImGuiSliderFlags speedSliderFlags = ImGuiSliderFlags_Logarithmic;
+        if (ImGui::SliderFloat("Simulation speed", &simulationSpeedMultiplier_, minSimulationSpeedMultiplier, maxSimulationSpeedMultiplier, "%.3fx", speedSliderFlags)) {
+            simulationSpeedMultiplier_ = sanitizeSimulationSpeed(simulationSpeedMultiplier_);
+        }
+        if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left)) {
+            editingSimulationSpeed_ = true;
+            focusSimulationSpeedInput_ = true;
+        }
+    }
     if (state_ == SimulationRunState::Running) {
         if (ImGui::Button("Restart")) {
             restart(scenario);

@@ -131,6 +131,8 @@ Criterios de aceptación:
 
 - La velocidad visual puede reducirse hasta `0.001x`.
 - La velocidad visual puede aumentarse hasta `2x`.
+- El control favorece velocidades pequeñas para inspección detallada.
+- El usuario puede ingresar manualmente una velocidad precisa.
 - La velocidad no cambia los resultados físicos calculados.
 
 ### HU-11: Obtener resultados para el informe
