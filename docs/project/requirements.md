@@ -209,6 +209,8 @@ Aceptación:
 
 - El usuario debe poder reducir la reproducción hasta `0.001x` para inspección detallada.
 - El usuario debe poder aumentar la reproducción hasta `2x` para revisión rápida.
+- El control debe priorizar la selección de velocidades pequeñas mediante una escala logarítmica.
+- El usuario debe poder ingresar manualmente una velocidad exacta desde el control.
 - Cambiar la velocidad no debe modificar los resultados físicos ya calculados.
 
 ## Requerimientos No Funcionales

@@ -37,4 +37,4 @@ Esta guía resume el flujo principal para preparar y ejecutar una simulación ac
 3. Usá la pantalla de simulación para observar rayos, energía difusa y energía recibida.
 4. Ajustá la velocidad de reproducción si necesitás inspeccionar el resultado con más detalle.
 
-La velocidad visual puede ir de `0.001x` a `2x`. Este control no recalcula el Core; solo cambia cómo se reproduce el resultado ya generado.
+La velocidad visual puede ir de `0.001x` a `2x`. El deslizador usa escala logarítmica para dar más precisión en velocidades pequeñas. Hacé doble click sobre el campo de velocidad si necesitás ingresar un valor exacto. Este control no recalcula el Core; solo cambia cómo se reproduce el resultado ya generado.

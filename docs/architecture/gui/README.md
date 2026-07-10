@@ -78,7 +78,7 @@ Los DTOs no son el dominio de la GUI. Son formatos de intercambio entre servicio
 |---|---|---|---|
 | `General / Number of rays` | `GuiScenario::simulationConfig.rayCount` | `core::SimulationConfig::rayCount` | El Core ajusta internamente el conteo a `2 + 10*n^2` por subdivisión icosaédrica. |
 | `Source / Energy` | `GuiSource::energy` | `core::SourceData::energy` | Valor inicial por fuente; el default visual es `120`. |
-| Velocidad de simulación | Estado de `SimulationScreen` | No cambia el cálculo Core | Controla la reproducción visual entre `0.001x` y `2x`. |
+| Velocidad de simulación | Estado de `SimulationScreen` | No cambia el cálculo Core | Control logarítmico entre `0.001x` y `2x`, con entrada manual para valores precisos. |
 
 Esta separación evita que un ajuste visual se confunda con un parámetro físico de simulación.
 
