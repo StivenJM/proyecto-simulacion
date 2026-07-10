@@ -136,6 +136,7 @@ La aplicación debe permitir colocar y configurar fuentes de energía y receptor
 Aceptación:
 
 - El usuario debe poder ubicar fuentes de energía en el escenario.
+- El usuario debe poder editar la energía inicial de cada fuente.
 - El usuario debe poder ubicar receptores en el escenario.
 - Las fuentes y receptores definidos deben participar en la simulación.
 
@@ -188,6 +189,27 @@ Aceptación:
 - La exportación debe incluir datos relevantes de la simulación, como tiempos, porcentajes y energía recibida.
 - La exportación debe incluir información visual o capturas que ayuden a interpretar el escenario y los resultados.
 - La información exportada debe ser útil para análisis, presentación y elaboración del informe académico.
+
+### RF-20: Configuración global de rayos
+
+La aplicación debe permitir configurar la cantidad global de rayos usada por la simulación.
+
+Aceptación:
+
+- El usuario debe poder editar la cantidad de rayos desde las propiedades generales del escenario.
+- La configuración debe guardarse junto con el escenario preparado.
+- La simulación debe enviar esa configuración al Core como parámetro global.
+- El Core puede ajustar el valor a un conteo válido según su estrategia de generación direccional.
+
+### RF-21: Velocidad de reproducción de simulación
+
+La aplicación debe permitir revisar la simulación a distintas velocidades visuales.
+
+Aceptación:
+
+- El usuario debe poder reducir la reproducción hasta `0.001x` para inspección detallada.
+- El usuario debe poder aumentar la reproducción hasta `2x` para revisión rápida.
+- Cambiar la velocidad no debe modificar los resultados físicos ya calculados.
 
 ## Requerimientos No Funcionales
 

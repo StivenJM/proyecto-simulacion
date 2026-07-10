@@ -94,6 +94,16 @@ Criterios de aceptación:
 - La energía hacia receptores respeta el tiempo de vuelo correspondiente.
 - Los resultados permiten analizar la energía recibida durante la simulación.
 
+### HU-09.1: Configurar la energía de una fuente
+
+Como estudiante, quiero definir la energía inicial de cada fuente, para comparar cómo cambia la simulación cuando varía la energía emitida.
+
+Criterios de aceptación:
+
+- Cada fuente editable permite modificar su energía inicial.
+- La energía configurada participa en la simulación.
+- El valor configurado se conserva dentro del escenario preparado.
+
 ### HU-10: Respetar el límite de duración
 
 Como estudiante, quiero que la simulación no supere un segundo, para cumplir con la condición temporal definida en el proyecto.
@@ -102,6 +112,26 @@ Criterios de aceptación:
 
 - La simulación limita las transiciones al intervalo permitido.
 - No se consideran resultados fuera del límite temporal.
+
+### HU-10.1: Ajustar la cantidad global de rayos
+
+Como estudiante, quiero configurar la cantidad global de rayos, para controlar el nivel de muestreo direccional de la simulación.
+
+Criterios de aceptación:
+
+- La configuración está disponible en las propiedades generales del escenario.
+- El valor configurado se envía al Core al ejecutar la simulación.
+- La aplicación acepta que el Core ajuste el conteo a una distribución direccional válida.
+
+### HU-10.2: Revisar la simulación a distintas velocidades
+
+Como estudiante, quiero reproducir la simulación más lento o más rápido, para inspeccionar detalles o revisar resultados de forma ágil.
+
+Criterios de aceptación:
+
+- La velocidad visual puede reducirse hasta `0.001x`.
+- La velocidad visual puede aumentarse hasta `2x`.
+- La velocidad no cambia los resultados físicos calculados.
 
 ### HU-11: Obtener resultados para el informe
 
@@ -112,4 +142,3 @@ Criterios de aceptación:
 - Los resultados permiten explicar la distribución de energía difusa.
 - Los resultados permiten comparar superficies, tiempos y energía recibida.
 - La información obtenida sirve como base para el informe solicitado.
-
