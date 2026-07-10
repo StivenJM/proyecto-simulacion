@@ -93,20 +93,17 @@ SimulationResultDto toGuiResult(const core::SimulationResult& result, const GuiS
     GuiSimulationRay* currentRay = nullptr;
     Vec3 previousEnd{};
     float previousEndTimeSeconds = 0.0f;
-    float previousEndEnergy = 0.0f;
 
     for (const core::ReflectionRaySegment& segment : result.reflectionRays) {
         const Vec3 start = toGui(segment.from);
         const Vec3 end = toGui(segment.to);
-        const float endTimeSeconds = clamp01(static_cast<float>(segment.timeMs) / 1000.0f);
-        const float travelSeconds = std::max(0.04f, distance(start, end) / 340.0f);
         const bool continuesPreviousRay = currentRay != nullptr && samePoint(start, previousEnd);
-        const float startTimeSeconds = continuesPreviousRay
-            ? previousEndTimeSeconds
-            : std::max(0.0f, endTimeSeconds - travelSeconds);
+        const float startTimeSeconds = continuesPreviousRay ? previousEndTimeSeconds : 0.0f;
+        const float travelSeconds = std::max(0.0001f, distance(start, end) / 340.0f);
+        const float endTimeSeconds = startTimeSeconds + travelSeconds;
         const float energy = clamp01(static_cast<float>(segment.energy));
-        const float startEnergy = continuesPreviousRay ? previousEndEnergy : energy;
-        const float endEnergy = energy * 0.72f;
+        const float startEnergy = energy;
+        const float endEnergy = energy;
 
         if (!continuesPreviousRay) {
             GuiSimulationRay ray;
@@ -119,10 +116,9 @@ SimulationResultDto toGuiResult(const core::SimulationResult& result, const GuiS
             currentRay = &mapped.rays.back();
         }
 
-        currentRay->segments.push_back({start, end, -1, -1, startTimeSeconds, std::max(startTimeSeconds + 0.04f, endTimeSeconds), startEnergy, endEnergy});
+        currentRay->segments.push_back({start, end, -1, -1, startTimeSeconds, endTimeSeconds, startEnergy, endEnergy});
         previousEnd = end;
-        previousEndTimeSeconds = std::max(startTimeSeconds + 0.04f, endTimeSeconds);
-        previousEndEnergy = endEnergy;
+        previousEndTimeSeconds = endTimeSeconds;
     }
 
     mapped.overlay.active = result.success;
