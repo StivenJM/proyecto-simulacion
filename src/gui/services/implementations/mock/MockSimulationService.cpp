@@ -84,6 +84,7 @@ SimulationResultDto MockSimulationService::start(const GuiScenario& scenario)
     result.message = "Mock simulation completed.";
     result.state.running = true;
     result.durationSeconds = maxSimulationSeconds;
+    result.configuredRayCount = 8;
 
     constexpr int raysPerSource = 8;
     constexpr int maxBounces = 4;

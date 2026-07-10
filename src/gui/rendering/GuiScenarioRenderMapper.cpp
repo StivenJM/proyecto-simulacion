@@ -235,22 +235,22 @@ void appendTriangleInspection(std::vector<ColoredVertex>& fillVertices, std::vec
 
 std::array<Vec3, 12> buildIcosahedronPoints(Vec3 center, float radius)
 {
-    constexpr float ringY = 0.44721359550f;
+    constexpr float ringZ = 0.44721359550f;
     constexpr float ringRadius = 0.89442719100f;
 
     const std::array<Vec3, 12> unitPoints{
-        Vec3{0.0f, 1.0f, 0.0f},
-        Vec3{0.0f, ringY, ringRadius},
-        Vec3{0.85065080835f, ringY, 0.27639320225f},
-        Vec3{0.52573111212f, ringY, -0.72360679775f},
-        Vec3{-0.52573111212f, ringY, -0.72360679775f},
-        Vec3{-0.85065080835f, ringY, 0.27639320225f},
-        Vec3{0.52573111212f, -ringY, 0.72360679775f},
-        Vec3{0.85065080835f, -ringY, -0.27639320225f},
-        Vec3{0.0f, -ringY, -ringRadius},
-        Vec3{-0.85065080835f, -ringY, -0.27639320225f},
-        Vec3{-0.52573111212f, -ringY, 0.72360679775f},
-        Vec3{0.0f, -1.0f, 0.0f},
+        Vec3{0.0f, 0.0f, 1.0f},
+        Vec3{0.0f, ringRadius, ringZ},
+        Vec3{0.85065080835f, 0.27639320225f, ringZ},
+        Vec3{0.52573111212f, -0.72360679775f, ringZ},
+        Vec3{-0.52573111212f, -0.72360679775f, ringZ},
+        Vec3{-0.85065080835f, 0.27639320225f, ringZ},
+        Vec3{0.52573111212f, 0.72360679775f, -ringZ},
+        Vec3{0.85065080835f, -0.27639320225f, -ringZ},
+        Vec3{0.0f, -ringRadius, -ringZ},
+        Vec3{-0.85065080835f, -0.27639320225f, -ringZ},
+        Vec3{-0.52573111212f, 0.72360679775f, -ringZ},
+        Vec3{0.0f, 0.0f, -1.0f},
     };
 
     std::array<Vec3, 12> points{};

@@ -50,6 +50,10 @@ void SceneHierarchyPanel::render(PreparationScreen& screen)
     ImGui::TextDisabled("Select an object to edit its properties.");
     ImGui::Separator();
 
+    if (ImGui::Selectable("General", screen.isGeneralSelected())) {
+        screen.selectGeneral();
+    }
+
     const SectionHeaderState planesHeader = sectionHeader("Planes", "Add plane");
     if (planesHeader.addClicked) {
         screen.addDefaultPlane();

@@ -31,7 +31,8 @@ private:
     // Calcula la direccion reflejada de un rayo dado su normal de superficie.
     static Vec3 reflect(const Vec3& direction, const Vec3& normal);
 
-    // Genera direcciones uniformemente distribuidas en una esfera (espiral de Fibonacci).
+    // Genera direcciones distribuidas en una esfera subdividiendo un icosaedro.
+    // El conteo solicitado se ajusta a la forma 2 + 10*n^2.
     static std::vector<Vec3> generateRayDirections(int count);
 };
 
