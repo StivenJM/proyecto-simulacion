@@ -74,12 +74,6 @@ float segmentTravelTime(Vec3 start, Vec3 end)
     return distance(start, end) / soundSpeedMetersPerSecond;
 }
 
-float smoothstep(float value)
-{
-    const float t = clamp01(value);
-    return t * t * (3.0f - 2.0f * t);
-}
-
 Vec3 planeSamplePoint(const GuiPlane& plane)
 {
     if (!plane.triangles.empty()) {
@@ -87,30 +81,6 @@ Vec3 planeSamplePoint(const GuiPlane& plane)
     }
 
     return plane.center;
-}
-
-float simulatedEnergyAt(Vec3 point, const GuiPlane& plane, const GuiScenario& scenario, float progress)
-{
-    if (scenario.sources.empty()) {
-        return 0.0f;
-    }
-
-    float energy = 0.0f;
-    for (const GuiSource& source : scenario.sources) {
-        if (!source.visible) {
-            continue;
-        }
-
-        const float sourceDistance = distance(point, source.position);
-        const float arrival = clamp01(sourceDistance / 12.0f);
-        const float arrivalEnvelope = smoothstep((progress - arrival) / 0.32f);
-        const float attenuation = 1.0f / (1.0f + sourceDistance * sourceDistance * 0.18f);
-        const float absorption = 1.0f - clamp01(plane.absorption) * 0.75f;
-        const float temporalDecay = 1.0f - progress * 0.28f;
-        energy += arrivalEnvelope * attenuation * absorption * temporalDecay;
-    }
-
-    return energy;
 }
 
 const char* stateLabel(SimulationRunState state)
@@ -355,13 +325,9 @@ void SimulationScreen::recomputeRays(float progressValue)
 
         const float duration = std::max(0.0001f, activeSegment->endTimeSeconds - activeSegment->startTimeSeconds);
         const float localT = clamp01((currentTime - activeSegment->startTimeSeconds) / duration);
-        const float normalizedTime = clamp01(currentTime / maxSimulationSeconds);
-        const float temporalDecayBase = clamp01(1.0f - normalizedTime * 0.82f);
-        const float temporalDecay = std::pow(temporalDecayBase, 1.4f);
-        const float segmentDiffusion = 1.0f - localT * 0.28f;
         const float segmentEnergy = activeSegment->startEnergy + (activeSegment->endEnergy - activeSegment->startEnergy) * localT;
         ray.activePosition = lerp(activeSegment->start, activeSegment->end, localT);
-        ray.activeEnergy = clamp01(segmentEnergy * temporalDecay * segmentDiffusion);
+        ray.activeEnergy = clamp01(segmentEnergy);
         ray.activeRadius = 0.018f + ray.activeEnergy * 0.115f;
         ray.alive = ray.activeEnergy > 0.01f;
 
