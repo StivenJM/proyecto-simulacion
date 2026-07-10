@@ -11,8 +11,8 @@ namespace gui {
 namespace {
 
 constexpr float maxSimulationSeconds = 1.0f;
-constexpr float minSimulationSpeedMultiplier = 0.10f;
-constexpr float maxSimulationSpeedMultiplier = 4.00f;
+constexpr float minSimulationSpeedMultiplier = 0.001f;
+constexpr float maxSimulationSpeedMultiplier = 2.00f;
 constexpr float soundSpeedMetersPerSecond = 340.0f;
 
 float clamp01(float value)
@@ -182,7 +182,7 @@ void SimulationScreen::renderPanel(const GuiScenario& scenario)
     ImGui::Text("Time: %.2f s / %.2f s", elapsedSeconds_, maxSimulationSeconds);
     ImGui::ProgressBar(progress(), ImVec2(-1.0f, 0.0f));
 
-    ImGui::SliderFloat("Simulation speed", &simulationSpeedMultiplier_, minSimulationSpeedMultiplier, maxSimulationSpeedMultiplier, "%.2fx");
+    ImGui::SliderFloat("Simulation speed", &simulationSpeedMultiplier_, minSimulationSpeedMultiplier, maxSimulationSpeedMultiplier, "%.3fx");
     simulationSpeedMultiplier_ = std::clamp(simulationSpeedMultiplier_, minSimulationSpeedMultiplier, maxSimulationSpeedMultiplier);
     if (ImGui::Button("0.5x")) {
         simulationSpeedMultiplier_ = 0.5f;
