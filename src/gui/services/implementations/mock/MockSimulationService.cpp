@@ -99,6 +99,7 @@ SimulationResultDto MockSimulationService::start(const GuiScenario& scenario)
             GuiSimulationRay ray;
             ray.id = nextRayId++;
             ray.sourceId = source.id;
+            ray.initialEnergy = source.energy;
 
             Vec3 start = source.position;
             float energy = source.energy;
@@ -119,7 +120,7 @@ SimulationResultDto MockSimulationService::start(const GuiScenario& scenario)
                 const Vec3 end = triangleOrPlaneSamplePoint(plane, rayIndex, bounceIndex, triangleId);
                 const float rawDuration = std::max(0.08f, segmentTravelTime(start, end) * 18.0f);
                 const float endTime = std::min(maxSimulationSeconds, accumulated + rawDuration);
-                const float absorptionLoss = 0.58f + clamp01(plane.absorption) * 0.24f;
+                const float absorptionLoss = 1.0f - clamp01(plane.absorption);
                 const float endEnergy = energy * absorptionLoss;
 
                 ray.segments.push_back({start, end, plane.id, triangleId, accumulated, endTime, energy, endEnergy});
@@ -135,7 +136,7 @@ SimulationResultDto MockSimulationService::start(const GuiScenario& scenario)
             if (!ray.segments.empty()) {
                 ray.activePosition = ray.segments.front().start;
                 ray.activeEnergy = source.energy;
-                ray.activeRadius = 0.11f;
+                ray.activeRadius = 0.133f;
                 ray.alive = true;
                 result.rays.push_back(ray);
             }

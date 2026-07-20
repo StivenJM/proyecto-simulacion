@@ -9,6 +9,7 @@ bool CorePlaneService::updatePlanePoint(GuiScenario& scenario, GuiSelection& sel
 bool CorePlaneService::updatePlanePoints(GuiScenario& scenario, GuiSelection& selection, int planeId, const std::vector<Vec3>& points) { return fallback_.updatePlanePoints(scenario, selection, planeId, points); }
 bool CorePlaneService::updatePlaneName(GuiScenario& scenario, int planeId, const std::string& name) { return fallback_.updatePlaneName(scenario, planeId, name); }
 bool CorePlaneService::updatePlaneAbsorption(GuiScenario& scenario, int planeId, float absorption) { return fallback_.updatePlaneAbsorption(scenario, planeId, absorption); }
+void CorePlaneService::updateAllPlaneAbsorption(GuiScenario& scenario, float absorption) { fallback_.updateAllPlaneAbsorption(scenario, absorption); }
 bool CorePlaneService::updatePlaneVisibility(GuiScenario& scenario, int planeId, bool visible) { return fallback_.updatePlaneVisibility(scenario, planeId, visible); }
 bool CorePlaneService::updatePlaneColor(GuiScenario& scenario, int planeId, Vec3 color) { return fallback_.updatePlaneColor(scenario, planeId, color); }
 void CorePlaneService::selectNext(const GuiScenario& scenario, GuiSelection& selection) { fallback_.selectNext(scenario, selection); }

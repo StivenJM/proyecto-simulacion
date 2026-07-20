@@ -243,6 +243,15 @@ bool MockPlaneService::updatePlaneAbsorption(GuiScenario& scenario, int planeId,
     return false;
 }
 
+void MockPlaneService::updateAllPlaneAbsorption(GuiScenario& scenario, float absorption)
+{
+    const float sanitizedAbsorption = clamp01(absorption);
+    scenario.simulationConfig.globalAbsorption = sanitizedAbsorption;
+    for (GuiPlane& plane : scenario.planes) {
+        plane.absorption = sanitizedAbsorption;
+    }
+}
+
 bool MockPlaneService::updatePlaneVisibility(GuiScenario& scenario, int planeId, bool visible)
 {
     if (GuiPlane* plane = findPlane(scenario, planeId)) {
@@ -317,7 +326,7 @@ void MockPlaneService::addPlane(
     plane.orientation = orientation;
     plane.name = "Plane " + std::to_string(id);
     plane.visible = true;
-    plane.absorption = 0.0f;
+    plane.absorption = clamp01(scenario.simulationConfig.globalAbsorption);
     plane.outlinePoints = rectanglePoints(center, width, height, orientation);
     refreshDerivedPlaneData(plane);
     scenario.planes.push_back(plane);

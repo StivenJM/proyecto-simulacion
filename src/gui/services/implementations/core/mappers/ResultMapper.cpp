@@ -101,7 +101,7 @@ SimulationResultDto toGuiResult(const core::SimulationResult& result, const GuiS
         const float startTimeSeconds = continuesPreviousRay ? previousEndTimeSeconds : 0.0f;
         const float travelSeconds = std::max(0.0001f, distance(start, end) / 340.0f);
         const float endTimeSeconds = startTimeSeconds + travelSeconds;
-        const float energy = clamp01(static_cast<float>(segment.energy));
+        const float energy = static_cast<float>(segment.energy);
         const float startEnergy = energy;
         const float endEnergy = energy;
 
@@ -109,8 +109,9 @@ SimulationResultDto toGuiResult(const core::SimulationResult& result, const GuiS
             GuiSimulationRay ray;
             ray.id = nextRayId++;
             ray.activePosition = start;
+            ray.initialEnergy = energy;
             ray.activeEnergy = energy;
-            ray.activeRadius = 0.018f + energy * 0.115f;
+            ray.activeRadius = 0.133f;
             ray.alive = true;
             mapped.rays.push_back(ray);
             currentRay = &mapped.rays.back();

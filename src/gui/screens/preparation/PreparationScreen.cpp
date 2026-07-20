@@ -382,6 +382,11 @@ bool PreparationScreen::updateSelectedPlaneAbsorption(float absorption)
     return planeService_.updatePlaneAbsorption(scenario_, selectedPlaneId(), absorption);
 }
 
+void PreparationScreen::updateAllPlaneAbsorption(float absorption)
+{
+    planeService_.updateAllPlaneAbsorption(scenario_, absorption);
+}
+
 bool PreparationScreen::updateSelectedPlaneVisibility(bool visible)
 {
     return planeService_.updatePlaneVisibility(scenario_, selectedPlaneId(), visible);
@@ -440,6 +445,11 @@ int PreparationScreen::rayCount() const
 void PreparationScreen::updateRayCount(int rayCount)
 {
     scenario_.simulationConfig.rayCount = rayCount < 1 ? 1 : rayCount;
+}
+
+float PreparationScreen::globalAbsorption() const
+{
+    return scenario_.simulationConfig.globalAbsorption;
 }
 
 const GuiPlaneDraft& PreparationScreen::draft() const

@@ -197,9 +197,8 @@ RayTracer::TraceOutput RayTracer::trace(
             if (timeMs <= config.durationMs)
                 output.rays.push_back({origin, hitPoint, energy, timeMs});
 
-            // RF-08: aplicar absorcion y separar fraccion difusa
-            double remaining = energy * (1.0 - allTris[nearestIdx].absorption);
-            energy    = remaining * (1.0 - config.diffusionCoefficient);
+            // RF-08: aplicar absorcion del plano impactado
+            energy = energy * (1.0 - allTris[nearestIdx].absorption);
             origin    = hitPoint;
             direction = reflect(direction, GeometryCalculator::normalVector(allTris[nearestIdx].tri));
         }

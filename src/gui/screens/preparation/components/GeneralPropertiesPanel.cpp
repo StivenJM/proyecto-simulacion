@@ -32,6 +32,14 @@ void GeneralPropertiesPanel::render(PreparationScreen& screen)
         screen.updateRayCount(rayCount);
     }
     ImGui::TextDisabled("This value is sent to the core simulation as the global ray count.");
+
+    ImGui::Separator();
+    float absorption = screen.globalAbsorption();
+    ImGui::Text("Global absorption: %.2f (%.0f%%)", absorption, absorption * 100.0f);
+    ImGui::TextDisabled("Applies one absorption coefficient to every plane. Individual plane edits can still override it afterward.");
+    if (ImGui::SliderFloat("All planes absorption", &absorption, 0.0f, 1.0f, "%.2f")) {
+        screen.updateAllPlaneAbsorption(absorption);
+    }
 }
 
 }  // namespace gui
