@@ -2,7 +2,9 @@
 
 #include "gui/App.h"
 
-int main()
+namespace {
+
+int runApplication()
 {
     gui::App app;
 
@@ -14,3 +16,19 @@ int main()
     app.run();
     return 0;
 }
+
+}  // namespace
+
+int main()
+{
+    return runApplication();
+}
+
+#if defined(_WIN32)
+#include <windows.h>
+
+int WINAPI WinMain(HINSTANCE, HINSTANCE, LPSTR, int)
+{
+    return runApplication();
+}
+#endif

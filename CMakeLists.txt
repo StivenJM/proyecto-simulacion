@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(AcousticSimulator)
+project(AcousticSimulator VERSION 1.0.0)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -23,8 +23,9 @@ add_library(simulation_core STATIC
 target_include_directories(simulation_core PUBLIC src/core src)
 
 # ── Ejecutable principal ──────────────────────────────────────────────────────
-add_executable(AcousticSimulator
+add_executable(AcousticSimulator WIN32
     src/main.cpp
+    src/app.rc
     src/gui/App.cpp
     src/gui/App.h
     src/gui/AppMode.h
@@ -130,3 +131,47 @@ target_link_libraries(AcousticSimulator
     imgui::imgui
     OpenGL::GL
 )
+
+# ── Instalador / paquete distribuible ───────────────────────────────────────
+install(TARGETS AcousticSimulator RUNTIME DESTINATION bin)
+
+if(WIN32)
+    set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION bin)
+    set(CMAKE_INSTALL_UCRT_LIBRARIES TRUE)
+    include(InstallRequiredSystemLibraries)
+
+    install(CODE "
+        file(GLOB runtime_dlls \"${CMAKE_BINARY_DIR}/\${CMAKE_INSTALL_CONFIG_NAME}/*.dll\")
+        if(runtime_dlls)
+            file(INSTALL DESTINATION \"\${CMAKE_INSTALL_PREFIX}/bin\" TYPE FILE FILES \${runtime_dlls})
+        endif()
+    ")
+endif()
+
+set(CPACK_PACKAGE_NAME "AcousticSimulator")
+set(CPACK_PACKAGE_VENDOR "Proyecto Modelos")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Acoustic simulation desktop application")
+set(CPACK_PACKAGE_VERSION ${PROJECT_VERSION})
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "AcousticSimulator")
+set(CPACK_PACKAGE_DIRECTORY "${CMAKE_BINARY_DIR}/packages")
+set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-win64")
+
+if(WIN32)
+    set(CPACK_GENERATOR "NSIS64;ZIP")
+    set(CPACK_NSIS_DISPLAY_NAME "Acoustic Simulator")
+    set(CPACK_NSIS_PACKAGE_NAME "Acoustic Simulator")
+    set(CPACK_NSIS_EXECUTABLES_DIRECTORY "bin")
+    set(CPACK_PACKAGE_EXECUTABLES "AcousticSimulator" "Acoustic Simulator")
+    set(CPACK_NSIS_EXTRA_INSTALL_COMMANDS
+        "SetShellVarContext current\nCreateShortCut \\\"$DESKTOP\\\\Acoustic Simulator.lnk\\\" \\\"$INSTDIR\\\\bin\\\\AcousticSimulator.exe\\\" \\\"\\\" \\\"$INSTDIR\\\\bin\\\\AcousticSimulator.exe\\\" 0"
+    )
+    set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS
+        "SetShellVarContext current\nDelete \\\"$DESKTOP\\\\Acoustic Simulator.lnk\\\""
+    )
+    set(CPACK_NSIS_ENABLE_UNINSTALL_BEFORE_INSTALL ON)
+    set(CPACK_NSIS_MODIFY_PATH OFF)
+else()
+    set(CPACK_GENERATOR "TGZ")
+endif()
+
+include(CPack)

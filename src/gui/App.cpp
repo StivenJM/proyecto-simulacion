@@ -4,10 +4,50 @@
 #include <GLFW/glfw3.h>
 #include <imgui.h>
 
+#if defined(_WIN32)
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <GLFW/glfw3native.h>
+#include <windows.h>
+#include "resource.h"
+#endif
+
 #include "composition/GuiComposition.h"
 
 #include <iostream>
 #include <string>
+
+#if defined(_WIN32)
+namespace {
+
+void applyWindowIcon(GLFWwindow* window)
+{
+    const HINSTANCE instance = GetModuleHandleW(nullptr);
+    const auto largeIcon = static_cast<HICON>(LoadImageW(
+        instance,
+        MAKEINTRESOURCEW(IDI_APP_ICON),
+        IMAGE_ICON,
+        GetSystemMetrics(SM_CXICON),
+        GetSystemMetrics(SM_CYICON),
+        LR_DEFAULTCOLOR | LR_SHARED
+    ));
+    const auto smallIcon = static_cast<HICON>(LoadImageW(
+        instance,
+        MAKEINTRESOURCEW(IDI_APP_ICON),
+        IMAGE_ICON,
+        GetSystemMetrics(SM_CXSMICON),
+        GetSystemMetrics(SM_CYSMICON),
+        LR_DEFAULTCOLOR | LR_SHARED
+    ));
+
+    const HWND hwnd = glfwGetWin32Window(window);
+    if (hwnd != nullptr) {
+        SendMessageW(hwnd, WM_SETICON, ICON_BIG, reinterpret_cast<LPARAM>(largeIcon));
+        SendMessageW(hwnd, WM_SETICON, ICON_SMALL, reinterpret_cast<LPARAM>(smallIcon));
+    }
+}
+
+}  // namespace
+#endif
 
 namespace gui {
 
@@ -49,6 +89,10 @@ bool App::initialize()
         return false;
     }
 
+#if defined(_WIN32)
+    applyWindowIcon(window_);
+#endif
+
     glfwMakeContextCurrent(window_);
     glfwSetWindowUserPointer(window_, this);
     glfwSetFramebufferSizeCallback(window_, &App::onFramebufferResize);
@@ -62,9 +106,6 @@ bool App::initialize()
     resize(1280, 720);
     updateWindowTitle();
 
-    std::cout << "Controls: Tab switches Preparation/Simulation mode, Enter starts simulation mode, Esc closes.\n";
-    std::cout << "Preparation: P adds a rectangular plane, B adds a room, C selects next plane, I/K/J/L/U/O moves selected item.\n";
-    std::cout << "Point planes: N starts draft, M adds cursor point, I/K/J/L/U/O moves draft cursor, F finalizes, V edits selected plane, X cancels draft.\n";
     if (!renderer_.initialize()) {
         return false;
     }
