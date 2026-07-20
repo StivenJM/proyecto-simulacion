@@ -13,6 +13,7 @@ public:
     bool updatePlanePoints(GuiScenario& scenario, GuiSelection& selection, int planeId, const std::vector<Vec3>& points) override;
     bool updatePlaneName(GuiScenario& scenario, int planeId, const std::string& name) override;
     bool updatePlaneAbsorption(GuiScenario& scenario, int planeId, float absorption) override;
+    void updateAllPlaneAbsorption(GuiScenario& scenario, float absorption) override;
     bool updatePlaneVisibility(GuiScenario& scenario, int planeId, bool visible) override;
     bool updatePlaneColor(GuiScenario& scenario, int planeId, Vec3 color) override;
     void selectNext(const GuiScenario& scenario, GuiSelection& selection) override;

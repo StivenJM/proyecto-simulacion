@@ -56,6 +56,7 @@ public:
     bool updateSelectedPlanePoint(std::size_t pointIndex, Vec3 point);
     bool updateSelectedPlaneName(const std::string& name);
     bool updateSelectedPlaneAbsorption(float absorption);
+    void updateAllPlaneAbsorption(float absorption);
     bool updateSelectedPlaneVisibility(bool visible);
     bool updateSelectedPlaneColor(Vec3 color);
     void selectTriangle(int triangleId);
@@ -68,6 +69,7 @@ public:
     bool updateSelectedReceiverVisibility(bool visible);
     int rayCount() const;
     void updateRayCount(int rayCount);
+    float globalAbsorption() const;
     const GuiPlaneDraft& draft() const;
 
 private:

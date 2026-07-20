@@ -48,7 +48,7 @@ void PlanePropertiesPanel::render(PreparationScreen& screen)
     if (ImGui::SliderFloat("Absorption coefficient", &absorption, 0.0f, 1.0f, "%.2f")) {
         screen.updateSelectedPlaneAbsorption(absorption);
     }
-    ImGui::TextDisabled("Simulation result impact will use this value once the solver is connected.");
+    ImGui::TextDisabled("This value is sent to the core simulation for this plane.");
 
     bool visible = plane->visible;
     if (ImGui::Checkbox("Visible", &visible)) {

@@ -34,6 +34,7 @@ struct GuiSimulationRay {
     int sourceId = 0;
     std::vector<GuiRaySegment> segments;
     Vec3 activePosition{0.0f, 0.0f, 0.0f};
+    float initialEnergy = 1.0f;
     float activeEnergy = 0.0f;
     float activeRadius = 0.0f;
     bool alive = false;

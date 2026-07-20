@@ -14,12 +14,22 @@ constexpr float maxSimulationSeconds = 1.0f;
 constexpr float minSimulationSpeedMultiplier = 0.001f;
 constexpr float maxSimulationSpeedMultiplier = 2.00f;
 constexpr float soundSpeedMetersPerSecond = 340.0f;
+constexpr float initialRayParticleRadius = 0.133f;
 
 float clamp01(float value)
 {
     if (value < 0.0f) return 0.0f;
     if (value > 1.0f) return 1.0f;
     return value;
+}
+
+float energyRatio(float energy, float initialEnergy)
+{
+    if (!std::isfinite(energy) || !std::isfinite(initialEnergy) || initialEnergy <= 0.0f) {
+        return 0.0f;
+    }
+
+    return clamp01(energy / initialEnergy);
 }
 
 float distance(Vec3 a, Vec3 b)
@@ -345,13 +355,14 @@ void SimulationScreen::recomputeRays(float progressValue)
         const float duration = std::max(0.0001f, activeSegment->endTimeSeconds - activeSegment->startTimeSeconds);
         const float localT = clamp01((currentTime - activeSegment->startTimeSeconds) / duration);
         const float segmentEnergy = activeSegment->startEnergy + (activeSegment->endEnergy - activeSegment->startEnergy) * localT;
+        const float relativeEnergy = energyRatio(segmentEnergy, ray.initialEnergy);
         ray.activePosition = lerp(activeSegment->start, activeSegment->end, localT);
-        ray.activeEnergy = clamp01(segmentEnergy);
-        ray.activeRadius = 0.018f + ray.activeEnergy * 0.115f;
-        ray.alive = ray.activeEnergy > 0.01f;
+        ray.activeEnergy = segmentEnergy;
+        ray.activeRadius = initialRayParticleRadius * relativeEnergy;
+        ray.alive = relativeEnergy > 0.01f;
 
         if (ray.alive) {
-            overlay_.rayParticles.push_back({ray.activePosition, ray.activeRadius, ray.activeEnergy});
+            overlay_.rayParticles.push_back({ray.activePosition, ray.activeRadius, ray.activeEnergy, ray.initialEnergy});
         }
     }
 }
