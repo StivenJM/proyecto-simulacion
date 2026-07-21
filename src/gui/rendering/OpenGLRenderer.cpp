@@ -102,6 +102,14 @@ void drawColoredVertices(unsigned int vertexArray, unsigned int vertexBuffer, co
     glDrawArrays(GL_TRIANGLES, 0, static_cast<int>(vertices.size()));
 }
 
+void drawLineVertices(unsigned int vertexArray, unsigned int vertexBuffer, const std::vector<LineVertex>& vertices)
+{
+    glBindVertexArray(vertexArray);
+    glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
+    glBufferData(GL_ARRAY_BUFFER, static_cast<long long>(vertices.size() * sizeof(LineVertex)), vertices.data(), GL_DYNAMIC_DRAW);
+    glDrawArrays(GL_LINES, 0, static_cast<int>(vertices.size()));
+}
+
 void drawSphereLayer(GLUquadric* quadric, Vec3 position, float radius, ColorRgba color)
 {
     glColor4f(color.r, color.g, color.b, color.a);
@@ -250,11 +258,15 @@ void OpenGLRenderer::render(const Mat4& viewProjectionMatrix, const RenderScene&
     glUniformMatrix4fv(matrixLocation, 1, GL_FALSE, viewProjectionMatrix.values.data());
 
     glDepthFunc(GL_LEQUAL);
-    glBindVertexArray(lineVertexArray_);
-    glBindBuffer(GL_ARRAY_BUFFER, lineVertexBuffer_);
-    glBufferData(GL_ARRAY_BUFFER, static_cast<long long>(scene.lineVertices.size() * sizeof(LineVertex)), scene.lineVertices.data(), GL_DYNAMIC_DRAW);
-    glDrawArrays(GL_LINES, 0, static_cast<int>(scene.lineVertices.size()));
+    drawLineVertices(lineVertexArray_, lineVertexBuffer_, scene.lineVertices);
     glDepthFunc(GL_LESS);
+
+    if (!scene.alwaysVisibleLineVertices.empty()) {
+        glDisable(GL_DEPTH_TEST);
+        drawLineVertices(lineVertexArray_, lineVertexBuffer_, scene.alwaysVisibleLineVertices);
+        glEnable(GL_DEPTH_TEST);
+    }
+
     glBindVertexArray(0);
 }
 

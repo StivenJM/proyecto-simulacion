@@ -361,6 +361,18 @@ void appendPlaneLines(std::vector<LineVertex>& vertices, const GuiPlane& plane, 
     }
 }
 
+void appendSolidPlaneEdgeLines(std::vector<LineVertex>& vertices, const GuiPlane& plane)
+{
+    if (!plane.visible || plane.outlinePoints.size() < 3) {
+        return;
+    }
+
+    const Vec3 edgeColor{0.0f, 0.0f, 0.0f};
+    for (std::size_t index = 0; index < plane.outlinePoints.size(); ++index) {
+        addLine(vertices, plane.outlinePoints[index], plane.outlinePoints[(index + 1) % plane.outlinePoints.size()], edgeColor);
+    }
+}
+
 void appendPlaneFill(std::vector<ColoredVertex>& vertices, const GuiPlane& plane, const RenderSimulationOverlay& simulationOverlay, const TriangleEnergyLookup& triangleEnergyLookup, bool solidSceneFill, float shadeFactor)
 {
     if (!plane.visible || plane.outlinePoints.size() < 3) {
@@ -582,6 +594,10 @@ RenderScene GuiScenarioRenderMapper::buildRenderScene(const GuiScenario& scenari
     const Vec3 center = scenarioCenter(scenario);
 
     for (const GuiPlane& plane : scenario.planes) {
+        if (solidSceneFill) {
+            appendSolidPlaneEdgeLines(scene.alwaysVisibleLineVertices, plane);
+        }
+
         if (solidSceneFill && shouldHideSolidPlane(plane, center, cameraPosition)) {
             continue;
         }
