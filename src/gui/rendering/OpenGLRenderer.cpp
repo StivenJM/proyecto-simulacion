@@ -1,7 +1,14 @@
 #include "OpenGLRenderer.h"
 
 #include <glad/glad.h>
+#if defined(_WIN32)
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#endif
+#include <GL/glu.h>
 
+#include <algorithm>
+#include <cmath>
 #include <iostream>
 
 namespace gui {
@@ -95,6 +102,67 @@ void drawColoredVertices(unsigned int vertexArray, unsigned int vertexBuffer, co
     glDrawArrays(GL_TRIANGLES, 0, static_cast<int>(vertices.size()));
 }
 
+void drawSphereLayer(GLUquadric* quadric, Vec3 position, float radius, ColorRgba color)
+{
+    glColor4f(color.r, color.g, color.b, color.a);
+    glPushMatrix();
+    glTranslatef(position.x, position.y, position.z);
+    gluSphere(quadric, radius, 24, 12);
+    glPopMatrix();
+}
+
+void drawRayParticle(GLUquadric* quadric, const RenderRayParticle& particle)
+{
+    const float relativeEnergy = particle.initialEnergy > 0.0f ? std::clamp(particle.energy / particle.initialEnergy, 0.0f, 1.0f) : 0.0f;
+    if (relativeEnergy <= 0.01f) {
+        return;
+    }
+
+    const Vec3 coreYellow{1.0f, 0.92f, 0.16f};
+    const Vec3 haloYellow{1.0f, 0.70f, 0.04f};
+    const float visibleEnergy = relativeEnergy * relativeEnergy;
+    const float coreRadius = particle.radius * (0.25f + relativeEnergy * 0.95f);
+    const float innerHaloRadius = particle.radius * (1.35f + (1.0f - relativeEnergy) * 0.75f);
+    const float outerHaloRadius = particle.radius * (2.35f + (1.0f - relativeEnergy) * 1.25f);
+
+    drawSphereLayer(quadric, particle.position, outerHaloRadius, {haloYellow.x, haloYellow.y, haloYellow.z, 0.12f * visibleEnergy});
+    drawSphereLayer(quadric, particle.position, innerHaloRadius, {haloYellow.x, haloYellow.y, haloYellow.z, 0.30f * relativeEnergy});
+    drawSphereLayer(quadric, particle.position, coreRadius, {coreYellow.x, coreYellow.y, coreYellow.z, 0.85f * std::pow(relativeEnergy, 1.5f)});
+}
+
+void drawRayParticles(const Mat4& viewProjectionMatrix, GLUquadric* quadric, const std::vector<RenderRayParticle>& particles)
+{
+    if (quadric == nullptr || particles.empty()) {
+        return;
+    }
+
+    glUseProgram(0);
+    glBindVertexArray(0);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDepthMask(GL_FALSE);
+
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadMatrixf(viewProjectionMatrix.values.data());
+
+    for (const RenderRayParticle& particle : particles) {
+        drawRayParticle(quadric, particle);
+    }
+
+    glPopMatrix();
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
+
+    glDepthMask(GL_TRUE);
+    glDisable(GL_BLEND);
+}
+
 }  // namespace
 
 OpenGLRenderer::~OpenGLRenderer()
@@ -113,6 +181,10 @@ bool OpenGLRenderer::initialize()
     glGenBuffers(1, &lineVertexBuffer_);
     glGenVertexArrays(1, &fillVertexArray_);
     glGenBuffers(1, &fillVertexBuffer_);
+    rayParticleQuadric_ = gluNewQuadric();
+    if (rayParticleQuadric_ == nullptr) {
+        return false;
+    }
 
     glBindVertexArray(lineVertexArray_);
     glBindBuffer(GL_ARRAY_BUFFER, lineVertexBuffer_);
@@ -172,6 +244,11 @@ void OpenGLRenderer::render(const Mat4& viewProjectionMatrix, const RenderScene&
         glDisable(GL_BLEND);
     }
 
+    drawRayParticles(viewProjectionMatrix, rayParticleQuadric_, scene.rayParticles);
+
+    glUseProgram(shaderProgram_);
+    glUniformMatrix4fv(matrixLocation, 1, GL_FALSE, viewProjectionMatrix.values.data());
+
     glDepthFunc(GL_LEQUAL);
     glBindVertexArray(lineVertexArray_);
     glBindBuffer(GL_ARRAY_BUFFER, lineVertexBuffer_);
@@ -183,6 +260,10 @@ void OpenGLRenderer::render(const Mat4& viewProjectionMatrix, const RenderScene&
 
 void OpenGLRenderer::shutdown()
 {
+    if (rayParticleQuadric_ != nullptr) {
+        gluDeleteQuadric(rayParticleQuadric_);
+        rayParticleQuadric_ = nullptr;
+    }
     if (fillVertexBuffer_ != 0) {
         glDeleteBuffers(1, &fillVertexBuffer_);
         fillVertexBuffer_ = 0;
