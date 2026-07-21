@@ -77,6 +77,34 @@ TEST(GuiDiffusion, ResultDtoExponeMatricesCompletasYEnergiaDensa) {
     EXPECT_EQ(dto.diffusion.timeStepMs, 1);
 }
 
+TEST(GuiDiffusion, ResultDtoExponeTriangulosCoreParaHeatmap) {
+    core::SimulationResult coreResult;
+    coreResult.success = true;
+    coreResult.message = "ok";
+    coreResult.diffusionTriangles = {
+        {10, 7, {0.0, 0.0, 0.0}, {1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}},
+        {11, 7, {1.0, 0.0, 0.0}, {1.0, 1.0, 0.0}, {0.0, 1.0, 0.0}}
+    };
+    coreResult.diffuseEnergyByTriangleTime = {{0.0, 2.0, 4.0}, {0.0, 8.0, 2.0}};
+    coreResult.reflectionRays = {
+        {{0.25, 0.25, 1.0}, {0.25, 0.25, 0.0}, 10.0, 1}
+    };
+
+    GuiScenario scenario = minimalScenario();
+    scenario.planes[0].absorption = 0.5f;
+    const SimulationResultDto dto = gui::coremappers::toGuiResult(coreResult, scenario);
+
+    ASSERT_EQ(dto.overlay.triangleEnergy.size(), 2u);
+    EXPECT_TRUE(dto.overlay.triangleEnergy[0].hasGeometry);
+    EXPECT_EQ(dto.overlay.triangleEnergy[0].planeId, 7);
+    EXPECT_EQ(dto.overlay.triangleEnergy[0].triangleId, 10);
+    EXPECT_NEAR(dto.overlay.triangleEnergy[0].energy, 1.0f, 1e-6f);
+    EXPECT_FLOAT_EQ(dto.overlay.triangleEnergy[0].vertices[1].x, 1.0f);
+
+    EXPECT_TRUE(dto.overlay.triangleEnergy[1].hasGeometry);
+    EXPECT_NEAR(dto.overlay.triangleEnergy[1].energy, 0.625f, 1e-6f);
+}
+
 TEST(GuiDiffusion, CoreServicePreservaCoeficienteDifusionDesdeInputGui) {
     auto fake = std::make_unique<CapturingCoreService>();
     CapturingCoreService* fakePtr = fake.get();

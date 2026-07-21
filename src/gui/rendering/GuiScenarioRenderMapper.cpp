@@ -11,6 +11,69 @@
 namespace gui {
 namespace {
 
+constexpr int NUM_COLORS = 4;
+
+class color {
+public:
+    double R = 1.0;
+    double G = 1.0;
+    double B = 1.0;
+
+    color operator*(double f)
+    {
+        color c;
+        c.R = R * f;
+        c.G = G * f;
+        c.B = B * f;
+        return c;
+    }
+
+    void operator=(double f)
+    {
+        R = G = B = f;
+    }
+
+    void getHeatMapColor(double value)
+    {
+        color arr_col[NUM_COLORS];
+
+        arr_col[0].R = 0.5;
+        arr_col[0].G = 0.5;
+        arr_col[0].B = 1.0;
+
+        arr_col[1].R = 0.5;
+        arr_col[1].G = 1.0;
+        arr_col[1].B = 0.5;
+
+        arr_col[2].R = 1.0;
+        arr_col[2].G = 1.0;
+        arr_col[2].B = 0.5;
+
+        arr_col[3].R = 1.0;
+        arr_col[3].G = 0.5;
+        arr_col[3].B = 0.5;
+
+        int ind1;
+        int ind2;
+        double fracIntermedia = 0.0;
+
+        if (value <= 0.0) {
+            ind1 = ind2 = 0;
+        } else if (value >= 1.0) {
+            ind1 = ind2 = 3;
+        } else {
+            value = value * (NUM_COLORS - 1);
+            ind1 = static_cast<int>(std::floor(value));
+            ind2 = ind1 + 1;
+            fracIntermedia = value - static_cast<double>(ind1);
+        }
+
+        R = (arr_col[ind2].R - arr_col[ind1].R) * fracIntermedia + arr_col[ind1].R;
+        G = (arr_col[ind2].G - arr_col[ind1].G) * fracIntermedia + arr_col[ind1].G;
+        B = (arr_col[ind2].B - arr_col[ind1].B) * fracIntermedia + arr_col[ind1].B;
+    }
+};
+
 void addLine(std::vector<LineVertex>& vertices, Vec3 from, Vec3 to, Vec3 color)
 {
     vertices.push_back({from, color});
@@ -140,13 +203,34 @@ float triangleEnergy(const TriangleEnergyLookup& lookup, int planeId, int triang
 
 ColorRgba energyTintedFillColor(const GuiPlane& plane, float energy)
 {
-    const ColorRgba base = absorptionMappedPlaneFillColor(plane);
+    (void)plane;
+    color heatMapColor;
     const float mappedEnergy = clamp01(energy);
-    const Vec3 cool{base.r, base.g, base.b};
-    const Vec3 warm = mix(Vec3{1.0f, 0.78f, 0.18f}, Vec3{1.0f, 0.24f, 0.08f}, mappedEnergy);
-    const Vec3 color = mix(cool, warm, mappedEnergy * 0.72f);
-    const float alpha = std::min(0.62f, base.a + mappedEnergy * 0.30f);
-    return {color.x, color.y, color.z, alpha};
+    heatMapColor.getHeatMapColor(mappedEnergy);
+    const float alpha = mappedEnergy > 0.0f ? 0.74f : 0.34f;
+    return {static_cast<float>(heatMapColor.R), static_cast<float>(heatMapColor.G), static_cast<float>(heatMapColor.B), alpha};
+}
+
+bool hasOverlayTriangleGeometry(const RenderSimulationOverlay& simulationOverlay, int planeId)
+{
+    if (!simulationOverlay.active || !simulationOverlay.showDiffuseEnergy) {
+        return false;
+    }
+
+    return std::any_of(simulationOverlay.triangleEnergy.begin(), simulationOverlay.triangleEnergy.end(), [planeId](const RenderTriangleEnergy& sample) {
+        return sample.planeId == planeId && sample.hasGeometry;
+    });
+}
+
+void appendOverlayTriangleEnergy(std::vector<ColoredVertex>& vertices, const RenderSimulationOverlay& simulationOverlay, int planeId)
+{
+    for (const RenderTriangleEnergy& sample : simulationOverlay.triangleEnergy) {
+        if (sample.planeId != planeId || !sample.hasGeometry) {
+            continue;
+        }
+
+        addTriangle(vertices, sample.vertices[0], sample.vertices[1], sample.vertices[2], energyTintedFillColor({}, sample.energy));
+    }
 }
 
 void appendPlaneLines(std::vector<LineVertex>& vertices, const GuiPlane& plane, bool selected)
@@ -214,6 +298,11 @@ void appendPlaneFill(std::vector<ColoredVertex>& vertices, const GuiPlane& plane
     }
 
     const bool showDiffuseEnergy = simulationOverlay.active && simulationOverlay.showDiffuseEnergy;
+    if (showDiffuseEnergy && hasOverlayTriangleGeometry(simulationOverlay, plane.id)) {
+        appendOverlayTriangleEnergy(vertices, simulationOverlay, plane.id);
+        return;
+    }
+
     const float planeLevel = planeEnergy(simulationOverlay, plane.id);
     if (showDiffuseEnergy && !plane.triangles.empty()) {
         for (const GuiTriangle& triangle : plane.triangles) {
