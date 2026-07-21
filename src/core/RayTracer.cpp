@@ -1,7 +1,9 @@
 #include "RayTracer.h"
 #include "GeometryCalculator.h"
+#include "CoreTiming.h"
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <cmath>
 
 namespace core {
@@ -141,19 +143,46 @@ RayTracer::TraceOutput RayTracer::trace(
     const std::vector<ReceiverData>& receivers,
     const SimulationConfig&          config
 ) {
+    const auto traceStart = std::chrono::steady_clock::now();
+    auto elapsedMs = [](const std::chrono::steady_clock::time_point& start) {
+        return std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - start
+        ).count();
+    };
+
     TraceOutput output;
 
     struct FlatTri { TriangleData tri; double absorption; };
+    const auto flattenStart = std::chrono::steady_clock::now();
     std::vector<FlatTri> allTris;
     for (const auto& surf : surfaces)
         for (const auto& tri : surf.triangles)
             allTris.push_back({tri, surf.absorption});
+    coreTiming() << "[CoreTiming] RayTracer::collectTriangles durationMs="
+              << elapsedMs(flattenStart)
+              << " sourceId=" << source.id
+              << " triangleCount=" << allTris.size() << "\n";
 
-    if (allTris.empty()) return output;
+    if (allTris.empty()) {
+        coreTiming() << "[CoreTiming] RayTracer::trace durationMs="
+                  << elapsedMs(traceStart)
+                  << " sourceId=" << source.id
+                  << " requestedRayCount=" << config.rayCount
+                  << " generatedRayCount=0"
+                  << " triangleCount=0"
+                  << " intersectionTestCount=0"
+                  << " hitCount=0"
+                  << " segmentCount=0"
+                  << " diffuseSeedCount=0"
+                  << " receiverSampleCount=0\n";
+        return output;
+    }
 
     const double maxDist      = config.soundSpeed * config.durationMs / 1000.0;
     const auto   rayDirs      = generateRayDirections(config.rayCount);
     const double energyPerRay = source.energy / static_cast<double>(rayDirs.size());
+    long long intersectionTestCount = 0;
+    long long hitCount = 0;
 
     for (const Vec3& rayDir : rayDirs) {
         Vec3   origin    = source.position;
@@ -166,6 +195,7 @@ RayTracer::TraceOutput RayTracer::trace(
             int    nearestIdx = -1;
 
             for (int i = 0; i < static_cast<int>(allTris.size()); i++) {
+                ++intersectionTestCount;
                 double t = intersectRayTriangle(origin, direction, allTris[i].tri);
                 if (t > 0.0 && (nearestT < 0.0 || t < nearestT)) {
                     nearestT = t; nearestIdx = i;
@@ -173,6 +203,7 @@ RayTracer::TraceOutput RayTracer::trace(
             }
 
             if (nearestIdx < 0) break;
+            ++hitCount;
 
             Vec3 hitPoint = add(origin, scale(direction, nearestT));
             traveled     += nearestT;
@@ -215,6 +246,18 @@ RayTracer::TraceOutput RayTracer::trace(
             direction = reflect(direction, GeometryCalculator::normalVector(allTris[nearestIdx].tri));
         }
     }
+
+    coreTiming() << "[CoreTiming] RayTracer::trace durationMs="
+              << elapsedMs(traceStart)
+              << " sourceId=" << source.id
+              << " requestedRayCount=" << config.rayCount
+              << " generatedRayCount=" << rayDirs.size()
+              << " triangleCount=" << allTris.size()
+              << " intersectionTestCount=" << intersectionTestCount
+              << " hitCount=" << hitCount
+              << " segmentCount=" << output.rays.size()
+              << " diffuseSeedCount=" << output.diffuseSeeds.size()
+              << " receiverSampleCount=" << output.receiverEnergy.size() << "\n";
 
     return output;
 }
