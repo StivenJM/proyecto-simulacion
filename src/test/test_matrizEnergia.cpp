@@ -1,11 +1,10 @@
 #include <gtest/gtest.h>
-#include "services/implementations/core/GeometryCalculator.h"
-#include "services/implementations/core/DiffuseEnergySolver.h"
-#include "services/implementations/core/RayTracer.h"
+#include "core/GeometryCalculator.h"
+#include "core/DiffuseEnergySolver.h"
+#include "core/RayTracer.h"
 #include "test_utils.h"
 
-using namespace services;
-using namespace services::core;
+using namespace core;
 using namespace test_utils;
 
 // --- Estructura: las 4 matrices son cuadradas n x n y estan alineadas -------
