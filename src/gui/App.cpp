@@ -81,7 +81,7 @@ bool App::initialize()
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
 
     window_ = glfwCreateWindow(1280, 720, "Acoustic Simulator", nullptr, nullptr);
     if (window_ == nullptr) {
@@ -124,7 +124,7 @@ void App::run()
 
         input_.update(window_);
         const bool imguiWantsKeyboard = ImGui::GetCurrentContext() != nullptr && ImGui::GetIO().WantCaptureKeyboard;
-        processInput(imguiWantsKeyboard);
+        bool simulationStarted = processInput(imguiWantsKeyboard);
 
         imguiLayer_.beginFrame();
         if (mode_ == AppMode::Preparation) {
@@ -133,8 +133,12 @@ void App::run()
             updateWindowTitle();
         } else {
             simulationScreen_.update(deltaTime, scenario_);
-            simulationScreen_.renderPanel(scenario_);
+            simulationStarted = simulationScreen_.renderPanel(scenario_) || simulationStarted;
             updateWindowTitle();
+        }
+
+        if (simulationStarted) {
+            previousTime = static_cast<float>(glfwGetTime());
         }
 
         if (!imguiWantsKeyboard && mode_ == AppMode::Preparation && preparationScreen_.handleInput(input_, deltaTime)) {
@@ -172,14 +176,14 @@ void App::resize(int width, int height)
     camera_.setViewport(width, height);
 }
 
-void App::processInput(bool imguiWantsKeyboard)
+bool App::processInput(bool imguiWantsKeyboard)
 {
     if (input_.isDown(GLFW_KEY_ESCAPE)) {
         glfwSetWindowShouldClose(window_, true);
     }
 
     if (imguiWantsKeyboard) {
-        return;
+        return false;
     }
 
     if (input_.wasPressed(GLFW_KEY_TAB)) {
@@ -187,8 +191,10 @@ void App::processInput(bool imguiWantsKeyboard)
     }
 
     if (input_.wasPressed(GLFW_KEY_ENTER)) {
-        startSimulation();
+        return startSimulation();
     }
+
+    return false;
 }
 
 void App::toggleMode()
@@ -203,17 +209,20 @@ void App::toggleMode()
     updateWindowTitle();
 }
 
-void App::startSimulation()
+bool App::startSimulation()
 {
     if (mode_ != AppMode::Simulation) {
         std::cout << "Switch to simulation mode before starting the simulation.\n";
-        return;
+        return false;
     }
 
     if (simulationScreen_.start(scenario_)) {
         updateWindowTitle();
         std::cout << "Simulation started. Preparation editing is locked.\n";
+        return true;
     }
+
+    return false;
 }
 
 Mat4 App::simulationViewProjection() const

@@ -32,9 +32,9 @@ public:
     explicit SimulationScreen(ISimulationService& simulationService);
 
     bool start(const GuiScenario& scenario);
-    void restart(const GuiScenario& scenario);
+    bool restart(const GuiScenario& scenario);
     void update(float deltaTime, const GuiScenario& scenario);
-    void renderPanel(const GuiScenario& scenario);
+    bool renderPanel(const GuiScenario& scenario);
     void reset();
     bool isStarted() const;
     bool isRunning() const;

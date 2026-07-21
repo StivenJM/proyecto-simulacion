@@ -33,9 +33,9 @@ private:
     static void onFramebufferResize(GLFWwindow* window, int width, int height);
 
     void resize(int width, int height);
-    void processInput(bool imguiWantsKeyboard);
+    bool processInput(bool imguiWantsKeyboard);
     void toggleMode();
-    void startSimulation();
+    bool startSimulation();
     Vec3 simulationCameraPosition() const;
     Mat4 simulationViewProjection() const;
     void updateWindowTitle();

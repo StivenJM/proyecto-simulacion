@@ -6,6 +6,8 @@
 
 #include <vector>
 
+struct GLUquadric;
+
 namespace gui {
 
 class OpenGLRenderer {
@@ -26,6 +28,7 @@ private:
     unsigned int lineVertexBuffer_ = 0;
     unsigned int fillVertexArray_ = 0;
     unsigned int fillVertexBuffer_ = 0;
+    GLUquadric* rayParticleQuadric_ = nullptr;
 };
 
 }  // namespace gui

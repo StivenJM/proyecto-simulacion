@@ -1,6 +1,6 @@
 # Generar el instalador de Windows
 
-Esta guía explica cómo generar el instalador `.exe` distribuible de `AcousticSimulator` usando CPack. El resultado queda en `build/packages` y no requiere subir binarios generados al repositorio.
+Esta guía explica cómo generar el instalador `.exe` distribuible de `AcousticSimulator` usando CPack. El instalador se genera desde el target `AcousticSimulator`, por lo que incluye los cambios actuales de la aplicación cuando primero recompilás en `Release`. El resultado queda en `build/packages` y no requiere subir binarios generados al repositorio.
 
 ## Prerrequisito
 
@@ -39,6 +39,8 @@ El instalador se genera desde archivos del repositorio, no desde archivos manual
 
 No se deben versionar `build/`, `build/packages/`, `_CPack_Packages/` ni instaladores generados. Esos artefactos se reconstruyen localmente.
 
+Los tests de desarrollo no forman parte del instalador. El proyecto los mantiene detrás de `ACOUSTIC_BUILD_TESTS`, que está desactivado por defecto para que el paquete distribuible solo incluya la aplicación y sus dependencias de ejecución.
+
 ## Generación rápida
 
 Ejecuta estos comandos desde la raíz del proyecto:
@@ -48,6 +50,8 @@ cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.c
 cmake --build build --config Release --target AcousticSimulator
 cpack --config build/CPackConfig.cmake -C Release -G NSIS64
 ```
+
+Si ya tenés un `build` configurado, igual recompilá el target en `Release` antes de ejecutar `cpack`. CPack empaqueta lo instalado desde el build actual; no recompila automáticamente los cambios nuevos.
 
 El instalador queda en:
 
@@ -82,6 +86,12 @@ El paquete incluye:
 * acceso directo del menú inicio para `Acoustic Simulator`
 * acceso directo del escritorio `Acoustic Simulator.lnk`
 * icono embebido en el ejecutable desde `assets/icons/acoustic-simulator.ico`
+
+El paquete no incluye:
+
+* `ambiente3d_tests.exe` ni librerías de GoogleTest
+* logs de desarrollo, por ejemplo `core_timing.log`
+* archivos temporales de build o paquetes previos
 
 El acceso directo del escritorio se crea explícitamente desde `CPACK_NSIS_EXTRA_INSTALL_COMMANDS` en `CMakeLists.txt` y apunta a:
 
@@ -137,6 +147,7 @@ Luego desinstala la aplicación y confirma que el acceso directo también se hay
 | El paquete no contiene DLLs necesarias | La app no se compiló en `Release` antes de empaquetar. | Ejecutá `cmake --build build --config Release --target AcousticSimulator` antes de `cpack`. |
 | El instalador queda fuera de `build/packages` | La configuración de CPack no está actualizada. | Regenerá CMake con `cmake -S . -B build ...`. |
 | El instalador no crea el acceso directo del escritorio | El instalador fue generado antes de usar `CPACK_NSIS_EXTRA_INSTALL_COMMANDS`. | Regenerá CMake y luego generá de nuevo el instalador con `cpack --config build/CPackConfig.cmake -C Release -G NSIS64`. |
+| El instalador no refleja cambios recientes de la GUI | Se ejecutó CPack sin recompilar el target `Release`. | Volvé a ejecutar `cmake --build build --config Release --target AcousticSimulator` y después `cpack`. |
 
 ## Flujo reproducible completo
 

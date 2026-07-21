@@ -12,6 +12,14 @@ find_package(glad CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
 find_package(OpenGL REQUIRED)
 
+if(TARGET OpenGL::GLU)
+    set(ACOUSTIC_GLU_LIBRARY OpenGL::GLU)
+elseif(WIN32)
+    set(ACOUSTIC_GLU_LIBRARY glu32)
+else()
+    message(FATAL_ERROR "GLU is required to render simulation particles with gluSphere")
+endif()
+
 # ── Core (sin OpenGL) ─────────────────────────────────────────────────────────
 add_library(simulation_core STATIC
     src/core/AppConfig.cpp
@@ -133,6 +141,7 @@ target_link_libraries(AcousticSimulator
     glad::glad
     imgui::imgui
     OpenGL::GL
+    ${ACOUSTIC_GLU_LIBRARY}
 )
 
 # -- Tests de desarrollo ------------------------------------------------------

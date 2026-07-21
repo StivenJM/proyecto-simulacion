@@ -13,7 +13,7 @@ namespace {
 constexpr float maxSimulationSeconds = 1.0f;
 constexpr float minSimulationSpeedMultiplier = 0.001f;
 constexpr float maxSimulationSpeedMultiplier = 2.00f;
-constexpr float initialRayParticleRadius = 0.133f;
+constexpr float initialRayParticleRadius = 0.08f;
 
 float clamp01(float value)
 {
@@ -104,10 +104,10 @@ bool SimulationScreen::start(const GuiScenario& scenario)
     return result.success;
 }
 
-void SimulationScreen::restart(const GuiScenario& scenario)
+bool SimulationScreen::restart(const GuiScenario& scenario)
 {
     reset();
-    start(scenario);
+    return start(scenario);
 }
 
 void SimulationScreen::update(float deltaTime, const GuiScenario& scenario)
@@ -124,8 +124,10 @@ void SimulationScreen::update(float deltaTime, const GuiScenario& scenario)
     }
 }
 
-void SimulationScreen::renderPanel(const GuiScenario& scenario)
+bool SimulationScreen::renderPanel(const GuiScenario& scenario)
 {
+    bool simulationStarted = false;
+
     ImGui::Begin("Simulation");
     ImGui::Text("Status: %s", stateLabel(state_));
     if (!statusMessage_.empty()) {
@@ -164,11 +166,11 @@ void SimulationScreen::renderPanel(const GuiScenario& scenario)
     }
     if (state_ == SimulationRunState::Running) {
         if (ImGui::Button("Restart")) {
-            restart(scenario);
+            simulationStarted = restart(scenario);
         }
     } else {
         if (ImGui::Button(state_ == SimulationRunState::Finished ? "Restart" : "Start")) {
-            restart(scenario);
+            simulationStarted = restart(scenario);
         }
     }
 
@@ -213,6 +215,8 @@ void SimulationScreen::renderPanel(const GuiScenario& scenario)
     }
 
     ImGui::End();
+
+    return simulationStarted;
 }
 
 void SimulationScreen::reset()

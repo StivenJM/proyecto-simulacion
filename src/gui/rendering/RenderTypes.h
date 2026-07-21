@@ -64,6 +64,7 @@ struct RenderScene {
     std::vector<ColoredVertex> opaqueFillVertices;
     std::vector<ColoredVertex> fillVertices;
     std::vector<LineVertex> lineVertices;
+    std::vector<RenderRayParticle> rayParticles;
 };
 
 }  // namespace gui

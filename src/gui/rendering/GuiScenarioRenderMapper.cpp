@@ -499,42 +499,6 @@ void appendIcosahedronFill(std::vector<ColoredVertex>& vertices, Vec3 center, Ve
     }
 }
 
-void appendRayParticle(std::vector<ColoredVertex>& fillVertices, const RenderRayParticle& particle)
-{
-    const float relativeEnergy = particle.initialEnergy > 0.0f ? clamp01(particle.energy / particle.initialEnergy) : 0.0f;
-    if (relativeEnergy <= 0.01f) {
-        return;
-    }
-
-    const Vec3 coreYellow{1.0f, 0.92f, 0.16f};
-    const Vec3 haloYellow{1.0f, 0.70f, 0.04f};
-    const float visibleEnergy = relativeEnergy * relativeEnergy;
-
-    const float coreRadius = particle.radius * (0.25f + relativeEnergy * 0.95f);
-    const float innerHaloRadius = particle.radius * (1.35f + (1.0f - relativeEnergy) * 0.75f);
-    const float outerHaloRadius = particle.radius * (2.35f + (1.0f - relativeEnergy) * 1.25f);
-
-    const ColorRgba coreColor{coreYellow.x, coreYellow.y, coreYellow.z, 0.85f * std::pow(relativeEnergy, 1.5f)};
-    const ColorRgba innerHaloColor{haloYellow.x, haloYellow.y, haloYellow.z, 0.30f * relativeEnergy};
-    const ColorRgba outerHaloColor{haloYellow.x, haloYellow.y, haloYellow.z, 0.12f * visibleEnergy};
-
-    const std::array<Vec3, 12> outerHaloPoints = buildIcosahedronPoints(particle.position, outerHaloRadius);
-    for (const auto& face : icosahedronFaces()) {
-        addTriangle(fillVertices, outerHaloPoints[face[0]], outerHaloPoints[face[1]], outerHaloPoints[face[2]], outerHaloColor);
-    }
-
-    const std::array<Vec3, 12> innerHaloPoints = buildIcosahedronPoints(particle.position, innerHaloRadius);
-    for (const auto& face : icosahedronFaces()) {
-        addTriangle(fillVertices, innerHaloPoints[face[0]], innerHaloPoints[face[1]], innerHaloPoints[face[2]], innerHaloColor);
-    }
-
-    const std::array<Vec3, 12> points = buildIcosahedronPoints(particle.position, coreRadius);
-
-    for (const auto& face : icosahedronFaces()) {
-        addTriangle(fillVertices, points[face[0]], points[face[1]], points[face[2]], coreColor);
-    }
-}
-
 void appendSelectableIcosahedronMarker(std::vector<ColoredVertex>& opaqueFillVertices, std::vector<LineVertex>& lineVertices, Vec3 position, Vec3 color, bool selected)
 {
     const Vec3 fillColor = selected ? selectedMarkerColor(color) : color;
@@ -641,9 +605,7 @@ RenderScene GuiScenarioRenderMapper::buildRenderScene(const GuiScenario& scenari
     }
 
     if (simulationOverlay.active && simulationOverlay.showRayTracing) {
-        for (const RenderRayParticle& particle : simulationOverlay.rayParticles) {
-            appendRayParticle(scene.fillVertices, particle);
-        }
+        scene.rayParticles = simulationOverlay.rayParticles;
     }
 
     appendDraftLines(scene.lineVertices, draft);
