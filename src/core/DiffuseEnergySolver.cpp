@@ -1,6 +1,8 @@
 #include "DiffuseEnergySolver.h"
+#include "CoreTiming.h"
 #include <numeric>
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <unordered_map>
 
@@ -23,13 +25,27 @@ DiffuseEnergyResult DiffuseEnergySolver::solveDetailed(
     const std::vector<TriangleEnergySample>& initialSeeds,
     const SimulationConfig&          config
 ) {
+    const auto start = std::chrono::steady_clock::now();
     DiffuseEnergyResult result;
     std::vector<TriangleEnergySample> samples;
 
     int n = static_cast<int>(triangles.size());
-    if (n == 0) return result;
+    if (n == 0) {
+        coreTiming() << "[CoreTiming] DiffuseEnergySolver::solveDetailed durationMs=0"
+                  << " triangleCount=0"
+                  << " simulationDurationMs=" << std::max(0, std::min(config.durationMs, 1000))
+                  << " seedCount=" << initialSeeds.size()
+                  << " acceptedSeedCount=0"
+                  << " sampleCount=0"
+                  << " activeCellCount=0"
+                  << " propagationCount=0\n";
+        return result;
+    }
 
     const int durationMs = std::max(0, std::min(config.durationMs, 1000));
+    std::size_t acceptedSeedCount = 0;
+    long long activeCellCount = 0;
+    long long propagationCount = 0;
     std::vector<std::vector<double>> arrivals(
         static_cast<std::size_t>(durationMs + 1),
         std::vector<double>(static_cast<std::size_t>(n), 0.0)
@@ -58,6 +74,7 @@ DiffuseEnergyResult DiffuseEnergySolver::solveDetailed(
         if (seed.timeMs < 0 || seed.timeMs > durationMs) continue;
         if (seed.energy <= 0.0) continue;
         arrivals[seed.timeMs][it->second] += seed.energy;
+        ++acceptedSeedCount;
     }
 
     for (int timeMs = 0; timeMs <= durationMs; ++timeMs) {
@@ -67,6 +84,7 @@ DiffuseEnergyResult DiffuseEnergySolver::solveDetailed(
 
         for (int i = 0; i < n; i++) {
             if (energy[i] < 1e-10) continue;
+            ++activeCellCount;
 
             samples.push_back({triangles[i].id, triangles[i].surfaceId, timeMs, energy[i]});
             result.energyByTriangleTime[static_cast<std::size_t>(i)][static_cast<std::size_t>(timeMs)] += energy[i];
@@ -81,11 +99,24 @@ DiffuseEnergyResult DiffuseEnergySolver::solveDetailed(
                 const int arrivalMs = timeMs + diffusion.timesMs[i][j];
                 if (arrivalMs > durationMs) continue;
                 arrivals[arrivalMs][j] += afterAbsorb * diffusion.percentages[i][j];
+                ++propagationCount;
             }
         }
     }
 
     result.samples = std::move(samples);
+    const auto solveDurationMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - start
+    ).count();
+    coreTiming() << "[CoreTiming] DiffuseEnergySolver::solveDetailed durationMs="
+              << solveDurationMs
+              << " triangleCount=" << n
+              << " simulationDurationMs=" << durationMs
+              << " seedCount=" << initialSeeds.size()
+              << " acceptedSeedCount=" << acceptedSeedCount
+              << " sampleCount=" << result.samples.size()
+              << " activeCellCount=" << activeCellCount
+              << " propagationCount=" << propagationCount << "\n";
     return result;
 }
 

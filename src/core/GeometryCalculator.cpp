@@ -1,6 +1,8 @@
 #include "GeometryCalculator.h"
+#include "CoreTiming.h"
 #include <cmath>
 #include <algorithm>
+#include <chrono>
 
 namespace core {
 
@@ -111,7 +113,10 @@ DiffusionMatrixData GeometryCalculator::buildDiffusionMatrix(
     const std::vector<TriangleData>& triangles,
     double soundSpeed
 ) {
+    const auto start = std::chrono::steady_clock::now();
     int n = static_cast<int>(triangles.size());
+    const long long pairCount = static_cast<long long>(n) * static_cast<long long>(std::max(0, n - 1));
+    long long visiblePairCount = 0;
     DiffusionMatrixData result;
 
     result.distances.assign(n, std::vector<double>(n, 0.0));
@@ -135,6 +140,7 @@ DiffusionMatrixData GeometryCalculator::buildDiffusionMatrix(
             result.visibility[i][j] = areVisible(triangles[i], triangles[j]);
 
             if (result.visibility[i][j]) {
+                ++visiblePairCount;
                 weights[j] = solidAngleWeight(triangles[i], triangles[j]);
                 totalWeight += weights[j];
             }
@@ -149,6 +155,15 @@ DiffusionMatrixData GeometryCalculator::buildDiffusionMatrix(
             }
         }
     }
+
+    const auto durationMs = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - start
+    ).count();
+    coreTiming() << "[CoreTiming] GeometryCalculator::buildDiffusionMatrix durationMs="
+              << durationMs
+              << " triangleCount=" << n
+              << " pairCount=" << pairCount
+              << " visiblePairCount=" << visiblePairCount << "\n";
 
     return result;
 }
