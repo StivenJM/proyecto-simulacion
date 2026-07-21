@@ -166,12 +166,12 @@ void MockPlaneService::addPlane(GuiScenario& scenario, GuiSelection& selection)
 
 void MockPlaneService::addRoom(GuiScenario& scenario, GuiSelection& selection)
 {
-    addPlane(scenario, selection, {0.0f, -1.0f, 0.0f}, 4.0f, 3.0f, PlaneOrientation::Horizontal);
-    addPlane(scenario, selection, {0.0f, 1.0f, 0.0f}, 4.0f, 3.0f, PlaneOrientation::Horizontal);
-    addPlane(scenario, selection, {-2.0f, 0.0f, 0.0f}, 3.0f, 2.0f, PlaneOrientation::VerticalX);
-    addPlane(scenario, selection, {2.0f, 0.0f, 0.0f}, 3.0f, 2.0f, PlaneOrientation::VerticalX);
-    addPlane(scenario, selection, {0.0f, 0.0f, -1.5f}, 4.0f, 2.0f, PlaneOrientation::VerticalZ);
-    addPlane(scenario, selection, {0.0f, 0.0f, 1.5f}, 4.0f, 2.0f, PlaneOrientation::VerticalZ);
+    addPlane(scenario, selection, {0.0f, -1.0f, 0.0f}, 2.0f, 2.0f, PlaneOrientation::Horizontal);
+    addPlane(scenario, selection, {0.0f, 1.0f, 0.0f}, 2.0f, 2.0f, PlaneOrientation::Horizontal);
+    addPlane(scenario, selection, {-1.0f, 0.0f, 0.0f}, 2.0f, 2.0f, PlaneOrientation::VerticalX);
+    addPlane(scenario, selection, {1.0f, 0.0f, 0.0f}, 2.0f, 2.0f, PlaneOrientation::VerticalX);
+    addPlane(scenario, selection, {0.0f, 0.0f, -1.0f}, 2.0f, 2.0f, PlaneOrientation::VerticalZ);
+    addPlane(scenario, selection, {0.0f, 0.0f, 1.0f}, 2.0f, 2.0f, PlaneOrientation::VerticalZ);
 }
 
 void MockPlaneService::addPlaneFromPoints(GuiScenario& scenario, GuiSelection& selection, const std::vector<Vec3>& points)
