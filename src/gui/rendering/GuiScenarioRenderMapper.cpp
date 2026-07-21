@@ -5,6 +5,8 @@
 #include <array>
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
+#include <unordered_map>
 
 namespace gui {
 namespace {
@@ -68,6 +70,49 @@ ColorRgba absorptionMappedPlaneFillColor(const GuiPlane& plane)
     return {mappedColor.x, mappedColor.y, mappedColor.z, 0.30f};
 }
 
+struct TriangleEnergyKey {
+    int planeId{};
+    int triangleId{};
+
+    bool operator==(const TriangleEnergyKey& other) const
+    {
+        return planeId == other.planeId && triangleId == other.triangleId;
+    }
+};
+
+struct TriangleEnergyKeyHash {
+    std::size_t operator()(const TriangleEnergyKey& key) const
+    {
+        const std::size_t planeHash = std::hash<int>{}(key.planeId);
+        const std::size_t triangleHash = std::hash<int>{}(key.triangleId);
+        return planeHash ^ (triangleHash + 0x9e3779b9u + (planeHash << 6u) + (planeHash >> 2u));
+    }
+};
+
+using TriangleEnergyLookup = std::unordered_map<TriangleEnergyKey, float, TriangleEnergyKeyHash>;
+
+TriangleEnergyLookup buildTriangleEnergyLookup(const RenderSimulationOverlay& overlay)
+{
+    TriangleEnergyLookup lookup;
+    if (!overlay.active || !overlay.showDiffuseEnergy) {
+        return lookup;
+    }
+
+    lookup.reserve(overlay.triangleEnergy.size());
+    for (const RenderTriangleEnergy& sample : overlay.triangleEnergy) {
+        const TriangleEnergyKey key{sample.planeId, sample.triangleId};
+        const float energy = clamp01(sample.energy);
+        auto it = lookup.find(key);
+        if (it == lookup.end()) {
+            lookup.emplace(key, energy);
+        } else {
+            it->second = std::max(it->second, energy);
+        }
+    }
+
+    return lookup;
+}
+
 float planeEnergy(const RenderSimulationOverlay& overlay, int planeId)
 {
     if (!overlay.active || !overlay.showDiffuseEnergy) {
@@ -83,16 +128,11 @@ float planeEnergy(const RenderSimulationOverlay& overlay, int planeId)
     return 0.0f;
 }
 
-float triangleEnergy(const RenderSimulationOverlay& overlay, int planeId, int triangleId, float fallback)
+float triangleEnergy(const TriangleEnergyLookup& lookup, int planeId, int triangleId, float fallback)
 {
-    if (!overlay.active || !overlay.showDiffuseEnergy) {
-        return 0.0f;
-    }
-
-    for (const RenderTriangleEnergy& sample : overlay.triangleEnergy) {
-        if (sample.planeId == planeId && sample.triangleId == triangleId) {
-            return clamp01(sample.energy);
-        }
+    auto it = lookup.find({planeId, triangleId});
+    if (it != lookup.end()) {
+        return it->second;
     }
 
     return fallback;
@@ -167,7 +207,7 @@ void appendPlaneLines(std::vector<LineVertex>& vertices, const GuiPlane& plane, 
     }
 }
 
-void appendPlaneFill(std::vector<ColoredVertex>& vertices, const GuiPlane& plane, const RenderSimulationOverlay& simulationOverlay)
+void appendPlaneFill(std::vector<ColoredVertex>& vertices, const GuiPlane& plane, const RenderSimulationOverlay& simulationOverlay, const TriangleEnergyLookup& triangleEnergyLookup)
 {
     if (!plane.visible || plane.outlinePoints.size() < 3) {
         return;
@@ -181,7 +221,7 @@ void appendPlaneFill(std::vector<ColoredVertex>& vertices, const GuiPlane& plane
                 continue;
             }
 
-            const float level = triangleEnergy(simulationOverlay, plane.id, triangle.id, planeLevel);
+            const float level = triangleEnergy(triangleEnergyLookup, plane.id, triangle.id, planeLevel);
             addTriangle(vertices, triangle.vertices[0], triangle.vertices[1], triangle.vertices[2], energyTintedFillColor(plane, level));
         }
         return;
@@ -409,10 +449,11 @@ RenderScene GuiScenarioRenderMapper::buildRenderScene(const GuiScenario& scenari
     scene.fillVertices.reserve(scenario.planes.size() * 6);
     scene.opaqueFillVertices.reserve((scenario.sources.size() + scenario.receivers.size()) * 60);
     scene.lineVertices.reserve(scenario.planes.size() * 12 + scenario.sources.size() * 60 + scenario.receivers.size() * 60 + draft.points.size() * 8 + 32);
+    const TriangleEnergyLookup triangleEnergyLookup = buildTriangleEnergyLookup(simulationOverlay);
 
     for (const GuiPlane& plane : scenario.planes) {
         const bool selected = selection.isPlaneSelected() && plane.id == selection.selectedPlaneId();
-        appendPlaneFill(scene.fillVertices, plane, simulationOverlay);
+        appendPlaneFill(scene.fillVertices, plane, simulationOverlay, triangleEnergyLookup);
         appendPlaneLines(scene.lineVertices, plane, selected);
         if (selected) {
             appendTriangleInspection(scene.fillVertices, scene.lineVertices, plane, selection.selectedTriangleId());

@@ -50,6 +50,16 @@ SimulationResultDto toGuiResult(const core::SimulationResult& result, const GuiS
 
     const auto planeNameLookup = buildPlaneNameLookup(scenario);
 
+    mapped.diffusion.distances = result.diffusion.distances;
+    mapped.diffusion.timesMs = result.diffusion.timesMs;
+    mapped.diffusion.percentages = result.diffusion.percentages;
+    mapped.diffusion.visibility = result.diffusion.visibility;
+    mapped.diffusion.energyByTriangleTime = result.diffuseEnergyByTriangleTime;
+    mapped.diffusion.timeStepMs = result.diffuseEnergyTimeStepMs;
+    for (const core::TriangleData& triangle : result.diffusionTriangles) {
+        mapped.diffusion.triangles.push_back({triangle.id, triangle.surfaceId});
+    }
+
     std::unordered_map<int, float> planeEnergy;
     float maxEnergy = 0.0001f;
     for (const core::TriangleEnergySample& sample : result.triangleEnergy) {

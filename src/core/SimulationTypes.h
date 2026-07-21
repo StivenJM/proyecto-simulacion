@@ -89,6 +89,12 @@ struct DiffusionMatrixData {
     std::vector<std::vector<bool>>   visibility;
 };
 
+struct DiffuseEnergyResult {
+    std::vector<TriangleEnergySample> samples;
+    std::vector<std::vector<double>>  energyByTriangleTime;
+    int                               timeStepMs = 1;
+};
+
 // Resultado completo de la simulación. (RF-11)
 struct SimulationResult {
     bool        success             = false;
@@ -97,6 +103,9 @@ struct SimulationResult {
     std::vector<ReceiverEnergySample> receiverEnergy;
     std::vector<TriangleEnergySample> triangleEnergy;
     DiffusionMatrixData               diffusion;
+    std::vector<TriangleData>         diffusionTriangles;
+    std::vector<std::vector<double>>  diffuseEnergyByTriangleTime;
+    int                               diffuseEnergyTimeStepMs = 1;
     double      totalReceiverEnergy = 0.0;
     double      lostEnergy          = 0.0;
 };

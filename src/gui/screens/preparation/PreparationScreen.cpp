@@ -2,6 +2,7 @@
 
 #include "components/PlaneEditorControls.h"
 
+#include <algorithm>
 #include <iostream>
 #include <vector>
 
@@ -97,6 +98,8 @@ const GuiTriangle* findSelectedTriangle(const GuiPlane* plane, int triangleId)
 
     return nullptr;
 }
+
+constexpr int kMaxMeshSubdivisions = 10;
 
 float clamp01(float value)
 {
@@ -461,7 +464,7 @@ int PreparationScreen::meshSubdivisions() const
 
 void PreparationScreen::updateMeshSubdivisions(int meshSubdivisions)
 {
-    scenario_.simulationConfig.meshSubdivisions = meshSubdivisions < 1 ? 1 : meshSubdivisions;
+    scenario_.simulationConfig.meshSubdivisions = std::clamp(meshSubdivisions, 1, kMaxMeshSubdivisions);
 }
 
 float PreparationScreen::globalAbsorption() const

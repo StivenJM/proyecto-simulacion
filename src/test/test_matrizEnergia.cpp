@@ -108,6 +108,43 @@ TEST(MatrizEnergia, EnergiaDifusaInicialUsaSemillasExplicitas) {
     ASSERT_GE(e5, 0.0);
 }
 
+TEST(MatrizEnergia, MatrizDensaIncluyeSemillaInicialEnTrianguloYTiempo) {
+    std::vector<TriangleData> tris = {T0_piso(), T5_lejano()};
+    auto diff = GeometryCalculator::buildDiffusionMatrix(tris, 340.0);
+    SurfaceData s0; s0.id=0; s0.absorption=0.1; s0.triangles={tris[0]};
+    SurfaceData s1; s1.id=1; s1.absorption=0.1; s1.triangles={tris[1]};
+    std::vector<SurfaceData> surfaces = {s0, s1};
+
+    SimulationConfig cfg = buildConfigS1(10);
+    auto result = DiffuseEnergySolver::solveDetailed(diff, tris, surfaces, seedEnergy(tris[1], 2.5), cfg);
+
+    ASSERT_EQ(result.energyByTriangleTime.size(), 2u);
+    ASSERT_GT(result.energyByTriangleTime[1].size(), 0u);
+    EXPECT_DOUBLE_EQ(result.energyByTriangleTime[1][0], 2.5);
+}
+
+TEST(MatrizEnergia, PropagacionSecundariaAplicaAbsorcionDeEnergiaDifusaEntrante) {
+    std::vector<TriangleData> tris = {T0_piso(), T1_oeste(), T2_techo()};
+    DiffusionMatrixData diff;
+    diff.distances = {{0.0, 1.0, 1.0}, {1.0, 0.0, 1.0}, {1.0, 1.0, 0.0}};
+    diff.timesMs = {{0, 1, 1}, {1, 0, 1}, {1, 1, 0}};
+    diff.percentages = {{0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}, {0.0, 0.0, 0.0}};
+    diff.visibility = {{false, true, false}, {false, false, true}, {false, false, false}};
+
+    SurfaceData s0; s0.id=0; s0.absorption=0.25; s0.triangles={tris[0]};
+    SurfaceData s1; s1.id=1; s1.absorption=0.50; s1.triangles={tris[1]};
+    SurfaceData s2; s2.id=2; s2.absorption=0.00; s2.triangles={tris[2]};
+    std::vector<SurfaceData> surfaces = {s0, s1, s2};
+
+    SimulationConfig cfg = buildConfigS1(5);
+    auto result = DiffuseEnergySolver::solveDetailed(diff, tris, surfaces, seedEnergy(tris[0], 8.0), cfg);
+
+    ASSERT_EQ(result.energyByTriangleTime.size(), 3u);
+    EXPECT_DOUBLE_EQ(result.energyByTriangleTime[0][0], 8.0);
+    EXPECT_DOUBLE_EQ(result.energyByTriangleTime[1][1], 6.0);
+    EXPECT_DOUBLE_EQ(result.energyByTriangleTime[2][2], 3.0);
+}
+
 TEST(MatrizEnergia, CoreSimulationServiceUsaTriangulosGeneradosPorCoreParaSemillas) {
     ScenarioData scenario;
     SurfaceData surface = makeSurfaceFromTriangle(7, T0_piso(), 0.1);
@@ -128,6 +165,7 @@ TEST(MatrizEnergia, CoreSimulationServiceUsaTriangulosGeneradosPorCoreParaSemill
 
     ASSERT_TRUE(result.success);
     ASSERT_FALSE(result.triangleEnergy.empty());
+    ASSERT_EQ(result.diffusionTriangles.size(), result.diffuseEnergyByTriangleTime.size());
     for (const auto& sample : result.triangleEnergy) {
         EXPECT_NE(sample.triangleId, 999)
             << "La difusion no debe usar triangulos preexistentes del escenario/GUI.";
