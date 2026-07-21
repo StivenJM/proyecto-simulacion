@@ -23,6 +23,7 @@ public:
     virtual void updateAllPlaneAbsorption(GuiScenario& scenario, float absorption) = 0;
     virtual bool updatePlaneVisibility(GuiScenario& scenario, int planeId, bool visible) = 0;
     virtual bool updatePlaneColor(GuiScenario& scenario, int planeId, Vec3 color) = 0;
+    virtual bool updatePlaneNormal(GuiScenario& scenario, int planeId, Vec3 normal) = 0;
     virtual void selectNext(const GuiScenario& scenario, GuiSelection& selection) = 0;
     virtual void moveSelected(GuiScenario& scenario, const GuiSelection& selection, Vec3 delta) = 0;
 };

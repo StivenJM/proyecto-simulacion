@@ -147,7 +147,7 @@ void App::run()
 
         renderer_.render(
             simulationViewProjection(),
-            renderMapper_.buildRenderScene(scenario_, selection_, preparationScreen_.draft(), simulationScreen_.renderOverlay()),
+            renderMapper_.buildRenderScene(scenario_, selection_, preparationScreen_.draft(), simulationScreen_.renderOverlay(), simulationCameraPosition()),
             mode_,
             simulationScreen_.isStarted()
         );
@@ -222,15 +222,26 @@ Mat4 App::simulationViewProjection() const
         return camera_.viewProjectionMatrix();
     }
 
-    const Vec3 eye = scenario_.receivers.front().position;
-    Vec3 target{eye.x, eye.y, eye.z - 1.0f};
+    const Vec3 receiverPosition = scenario_.receivers.front().position;
+    const Vec3 eye = {receiverPosition.x, receiverPosition.y + 0.25f, receiverPosition.z};
+    Vec3 target{receiverPosition.x, receiverPosition.y, receiverPosition.z - 1.0f};
     if (!scenario_.sources.empty()) {
         target = scenario_.sources.front().position;
     } else if (!scenario_.planes.empty()) {
         target = scenario_.planes.front().center;
     }
 
-    return camera_.viewProjectionFrom({eye.x, eye.y + 0.25f, eye.z}, target, 68.0f);
+    return camera_.viewProjectionFrom(eye, target, 68.0f);
+}
+
+Vec3 App::simulationCameraPosition() const
+{
+    if (mode_ == AppMode::Simulation && simulationScreen_.viewMode() == SimulationViewMode::Internal && !scenario_.receivers.empty()) {
+        const Vec3 eye = scenario_.receivers.front().position;
+        return {eye.x, eye.y + 0.25f, eye.z};
+    }
+
+    return camera_.position();
 }
 
 void App::updateWindowTitle()

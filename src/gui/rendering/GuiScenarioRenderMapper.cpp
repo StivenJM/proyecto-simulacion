@@ -93,6 +93,68 @@ Vec3 darker(Vec3 color)
     return {color.x * factor, color.y * factor, color.z * factor};
 }
 
+Vec3 add(Vec3 a, Vec3 b)
+{
+    return {a.x + b.x, a.y + b.y, a.z + b.z};
+}
+
+Vec3 subtract(Vec3 a, Vec3 b)
+{
+    return {a.x - b.x, a.y - b.y, a.z - b.z};
+}
+
+Vec3 scale(Vec3 value, float factor)
+{
+    return {value.x * factor, value.y * factor, value.z * factor};
+}
+
+float dot(Vec3 a, Vec3 b)
+{
+    return a.x * b.x + a.y * b.y + a.z * b.z;
+}
+
+Vec3 normalize(Vec3 value)
+{
+    const float length = std::sqrt(dot(value, value));
+    if (length <= 0.0001f) {
+        return {0.0f, 0.0f, 0.0f};
+    }
+
+    return {value.x / length, value.y / length, value.z / length};
+}
+
+Vec3 scenarioCenter(const GuiScenario& scenario)
+{
+    Vec3 center{0.0f, 0.0f, 0.0f};
+    int count = 0;
+    for (const GuiPlane& plane : scenario.planes) {
+        if (!plane.visible) {
+            continue;
+        }
+
+        center = add(center, plane.center);
+        ++count;
+    }
+
+    if (count == 0) {
+        return center;
+    }
+
+    return scale(center, 1.0f / static_cast<float>(count));
+}
+
+bool shouldHideSolidPlane(const GuiPlane& plane, Vec3 center, Vec3 cameraPosition)
+{
+    const Vec3 cameraToCenter = normalize(subtract(center, cameraPosition));
+    const Vec3 normal = normalize(plane.normal);
+    return dot(cameraToCenter, normal) > 0.0f;
+}
+
+ColorRgba shaded(ColorRgba color, float factor)
+{
+    return {color.r * factor, color.g * factor, color.b * factor, color.a};
+}
+
 Vec3 selectedMarkerColor(Vec3 color)
 {
     constexpr float highlight = 0.22f;
@@ -124,13 +186,21 @@ Vec3 mix(Vec3 from, Vec3 to, float amount)
     };
 }
 
-ColorRgba absorptionMappedPlaneFillColor(const GuiPlane& plane)
+float solidPlaneShadeFactor(const GuiPlane& plane, Vec3 center, Vec3 cameraPosition)
+{
+    const Vec3 cameraToCenter = normalize(subtract(center, cameraPosition));
+    const Vec3 normal = normalize(plane.normal);
+    const float facingAmount = clamp01(-dot(cameraToCenter, normal));
+    return mix(0.62f, 1.0f, facingAmount);
+}
+
+ColorRgba absorptionMappedPlaneFillColor(const GuiPlane& plane, bool solidSceneFill)
 {
     const float absorption = clamp01(plane.absorption);
     const Vec3 reflectiveHighlight = mix(plane.color, Vec3{0.72f, 0.88f, 1.0f}, 0.28f);
     const Vec3 absorptiveTint = mix(plane.color, Vec3{1.0f, 0.42f, 0.18f}, 0.45f);
     const Vec3 mappedColor = mix(reflectiveHighlight, absorptiveTint, absorption);
-    return {mappedColor.x, mappedColor.y, mappedColor.z, 0.30f};
+    return {mappedColor.x, mappedColor.y, mappedColor.z, solidSceneFill ? 1.0f : 0.30f};
 }
 
 struct TriangleEnergyKey {
@@ -201,13 +271,13 @@ float triangleEnergy(const TriangleEnergyLookup& lookup, int planeId, int triang
     return fallback;
 }
 
-ColorRgba energyTintedFillColor(const GuiPlane& plane, float energy)
+ColorRgba energyTintedFillColor(const GuiPlane& plane, float energy, bool solidSceneFill)
 {
     (void)plane;
     color heatMapColor;
     const float mappedEnergy = clamp01(energy);
     heatMapColor.getHeatMapColor(mappedEnergy);
-    const float alpha = mappedEnergy > 0.0f ? 0.74f : 0.34f;
+    const float alpha = solidSceneFill ? 1.0f : (mappedEnergy > 0.0f ? 0.74f : 0.34f);
     return {static_cast<float>(heatMapColor.R), static_cast<float>(heatMapColor.G), static_cast<float>(heatMapColor.B), alpha};
 }
 
@@ -222,14 +292,14 @@ bool hasOverlayTriangleGeometry(const RenderSimulationOverlay& simulationOverlay
     });
 }
 
-void appendOverlayTriangleEnergy(std::vector<ColoredVertex>& vertices, const RenderSimulationOverlay& simulationOverlay, int planeId)
+void appendOverlayTriangleEnergy(std::vector<ColoredVertex>& vertices, const RenderSimulationOverlay& simulationOverlay, int planeId, bool solidSceneFill, float shadeFactor)
 {
     for (const RenderTriangleEnergy& sample : simulationOverlay.triangleEnergy) {
         if (sample.planeId != planeId || !sample.hasGeometry) {
             continue;
         }
 
-        addTriangle(vertices, sample.vertices[0], sample.vertices[1], sample.vertices[2], energyTintedFillColor({}, sample.energy));
+        addTriangle(vertices, sample.vertices[0], sample.vertices[1], sample.vertices[2], shaded(energyTintedFillColor({}, sample.energy, solidSceneFill), shadeFactor));
     }
 }
 
@@ -291,7 +361,7 @@ void appendPlaneLines(std::vector<LineVertex>& vertices, const GuiPlane& plane, 
     }
 }
 
-void appendPlaneFill(std::vector<ColoredVertex>& vertices, const GuiPlane& plane, const RenderSimulationOverlay& simulationOverlay, const TriangleEnergyLookup& triangleEnergyLookup)
+void appendPlaneFill(std::vector<ColoredVertex>& vertices, const GuiPlane& plane, const RenderSimulationOverlay& simulationOverlay, const TriangleEnergyLookup& triangleEnergyLookup, bool solidSceneFill, float shadeFactor)
 {
     if (!plane.visible || plane.outlinePoints.size() < 3) {
         return;
@@ -299,7 +369,7 @@ void appendPlaneFill(std::vector<ColoredVertex>& vertices, const GuiPlane& plane
 
     const bool showDiffuseEnergy = simulationOverlay.active && simulationOverlay.showDiffuseEnergy;
     if (showDiffuseEnergy && hasOverlayTriangleGeometry(simulationOverlay, plane.id)) {
-        appendOverlayTriangleEnergy(vertices, simulationOverlay, plane.id);
+        appendOverlayTriangleEnergy(vertices, simulationOverlay, plane.id, solidSceneFill, shadeFactor);
         return;
     }
 
@@ -311,12 +381,12 @@ void appendPlaneFill(std::vector<ColoredVertex>& vertices, const GuiPlane& plane
             }
 
             const float level = triangleEnergy(triangleEnergyLookup, plane.id, triangle.id, planeLevel);
-            addTriangle(vertices, triangle.vertices[0], triangle.vertices[1], triangle.vertices[2], energyTintedFillColor(plane, level));
+            addTriangle(vertices, triangle.vertices[0], triangle.vertices[1], triangle.vertices[2], shaded(energyTintedFillColor(plane, level, solidSceneFill), shadeFactor));
         }
         return;
     }
 
-    const ColorRgba color = showDiffuseEnergy ? energyTintedFillColor(plane, planeLevel) : absorptionMappedPlaneFillColor(plane);
+    const ColorRgba color = shaded(showDiffuseEnergy ? energyTintedFillColor(plane, planeLevel, solidSceneFill) : absorptionMappedPlaneFillColor(plane, solidSceneFill), shadeFactor);
     const Vec3 origin = plane.outlinePoints.front();
     for (std::size_t index = 1; index + 1 < plane.outlinePoints.size(); ++index) {
         vertices.push_back({origin, color});
@@ -534,15 +604,28 @@ RenderScene GuiScenarioRenderMapper::buildRenderScene(const GuiScenario& scenari
 
 RenderScene GuiScenarioRenderMapper::buildRenderScene(const GuiScenario& scenario, const GuiSelection& selection, const GuiPlaneDraft& draft, const RenderSimulationOverlay& simulationOverlay) const
 {
+    return buildRenderScene(scenario, selection, draft, simulationOverlay, {0.0f, 0.0f, 0.0f});
+}
+
+RenderScene GuiScenarioRenderMapper::buildRenderScene(const GuiScenario& scenario, const GuiSelection& selection, const GuiPlaneDraft& draft, const RenderSimulationOverlay& simulationOverlay, Vec3 cameraPosition) const
+{
     RenderScene scene;
     scene.fillVertices.reserve(scenario.planes.size() * 6);
     scene.opaqueFillVertices.reserve((scenario.sources.size() + scenario.receivers.size()) * 60);
     scene.lineVertices.reserve(scenario.planes.size() * 12 + scenario.sources.size() * 60 + scenario.receivers.size() * 60 + draft.points.size() * 8 + 32);
     const TriangleEnergyLookup triangleEnergyLookup = buildTriangleEnergyLookup(simulationOverlay);
+    const bool solidSceneFill = scenario.simulationConfig.solidSceneFill;
+    const Vec3 center = scenarioCenter(scenario);
 
     for (const GuiPlane& plane : scenario.planes) {
+        if (solidSceneFill && shouldHideSolidPlane(plane, center, cameraPosition)) {
+            continue;
+        }
+
         const bool selected = selection.isPlaneSelected() && plane.id == selection.selectedPlaneId();
-        appendPlaneFill(scene.fillVertices, plane, simulationOverlay, triangleEnergyLookup);
+        std::vector<ColoredVertex>& planeFillVertices = solidSceneFill ? scene.opaqueFillVertices : scene.fillVertices;
+        const float shadeFactor = solidSceneFill ? solidPlaneShadeFactor(plane, center, cameraPosition) : 1.0f;
+        appendPlaneFill(planeFillVertices, plane, simulationOverlay, triangleEnergyLookup, solidSceneFill, shadeFactor);
         appendPlaneLines(scene.lineVertices, plane, selected);
         if (selected) {
             appendTriangleInspection(scene.fillVertices, scene.lineVertices, plane, selection.selectedTriangleId());

@@ -407,6 +407,11 @@ bool PreparationScreen::updateSelectedPlaneColor(Vec3 color)
     return planeService_.updatePlaneColor(scenario_, selectedPlaneId(), color);
 }
 
+bool PreparationScreen::updateSelectedPlaneNormal(Vec3 normal)
+{
+    return planeService_.updatePlaneNormal(scenario_, selectedPlaneId(), normal);
+}
+
 void PreparationScreen::selectTriangle(int triangleId)
 {
     selection_.selectTriangle(triangleId);
@@ -480,6 +485,16 @@ float PreparationScreen::diffusionCoefficient() const
 void PreparationScreen::updateDiffusionCoefficient(float diffusionCoefficient)
 {
     scenario_.simulationConfig.diffusionCoefficient = clamp01(diffusionCoefficient);
+}
+
+bool PreparationScreen::solidSceneFill() const
+{
+    return scenario_.simulationConfig.solidSceneFill;
+}
+
+void PreparationScreen::updateSolidSceneFill(bool solidSceneFill)
+{
+    scenario_.simulationConfig.solidSceneFill = solidSceneFill;
 }
 
 const GuiPlaneDraft& PreparationScreen::draft() const

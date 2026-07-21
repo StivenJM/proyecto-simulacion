@@ -47,6 +47,13 @@ void GeneralPropertiesPanel::render(PreparationScreen& screen)
     ImGui::TextDisabled("Core simulation builds an N x N mesh for four-point planes. Maximum: 10.");
 
     ImGui::Separator();
+    bool solidSceneFill = screen.solidSceneFill();
+    if (ImGui::Checkbox("Solid cube visualization", &solidSceneFill)) {
+        screen.updateSolidSceneFill(solidSceneFill);
+    }
+    ImGui::TextDisabled("Switches plane fills between the default translucent view and a solid cube view.");
+
+    ImGui::Separator();
     float absorption = screen.globalAbsorption();
     ImGui::Text("Global absorption: %.2f (%.0f%%)", absorption, absorption * 100.0f);
     ImGui::TextDisabled("Applies one absorption coefficient to every plane. Individual plane edits can still override it afterward.");

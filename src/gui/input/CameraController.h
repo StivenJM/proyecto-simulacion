@@ -10,6 +10,7 @@ class CameraController {
 public:
     void setViewport(int width, int height);
     void update(GLFWwindow* window, float deltaTime);
+    Vec3 position() const;
     Mat4 viewProjectionMatrix() const;
     Mat4 viewProjectionFrom(Vec3 eye, Vec3 target, float fovDegrees = 60.0f) const;
 

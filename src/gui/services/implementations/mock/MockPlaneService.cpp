@@ -40,6 +40,21 @@ float length(Vec3 value)
     return std::sqrt(value.x * value.x + value.y * value.y + value.z * value.z);
 }
 
+Vec3 scale(Vec3 value, float factor)
+{
+    return {value.x * factor, value.y * factor, value.z * factor};
+}
+
+Vec3 normalize(Vec3 value)
+{
+    const float valueLength = length(value);
+    if (valueLength <= 0.0001f) {
+        return {0.0f, 1.0f, 0.0f};
+    }
+
+    return scale(value, 1.0f / valueLength);
+}
+
 Vec3 cross(Vec3 a, Vec3 b)
 {
     return {
@@ -80,6 +95,28 @@ float planeArea(const GuiPlane& plane)
     }
 
     return plane.width * plane.height;
+}
+
+Vec3 normalForPlane(Vec3 center, PlaneOrientation orientation)
+{
+    if (orientation == PlaneOrientation::Horizontal) {
+        return center.y >= 0.0f ? Vec3{0.0f, -1.0f, 0.0f} : Vec3{0.0f, 1.0f, 0.0f};
+    }
+
+    if (orientation == PlaneOrientation::VerticalX) {
+        return center.x >= 0.0f ? Vec3{-1.0f, 0.0f, 0.0f} : Vec3{1.0f, 0.0f, 0.0f};
+    }
+
+    return center.z >= 0.0f ? Vec3{0.0f, 0.0f, -1.0f} : Vec3{0.0f, 0.0f, 1.0f};
+}
+
+Vec3 normalFromPoints(const std::vector<Vec3>& points)
+{
+    if (points.size() < 3) {
+        return {0.0f, 1.0f, 0.0f};
+    }
+
+    return normalize(cross(subtract(points[1], points[0]), subtract(points[2], points[0])));
 }
 
 std::vector<Vec3> rectanglePoints(Vec3 center, float width, float height, PlaneOrientation orientation)
@@ -185,6 +222,7 @@ void MockPlaneService::addPlaneFromPoints(GuiScenario& scenario, GuiSelection& s
     plane.id = id;
     plane.center = averagePoint(points);
     plane.outlinePoints = points;
+    plane.normal = normalFromPoints(points);
     plane.name = "Plane " + std::to_string(id);
     refreshDerivedPlaneData(plane);
     scenario.planes.push_back(plane);
@@ -199,6 +237,7 @@ bool MockPlaneService::updatePlanePoint(GuiScenario& scenario, GuiSelection& sel
         }
 
         plane->outlinePoints[pointIndex] = point;
+        plane->normal = normalFromPoints(plane->outlinePoints);
         refreshDerivedPlaneData(*plane);
         selection.selectPlane(planeId);
         return true;
@@ -215,6 +254,7 @@ bool MockPlaneService::updatePlanePoints(GuiScenario& scenario, GuiSelection& se
 
     if (GuiPlane* plane = findPlane(scenario, planeId)) {
         plane->outlinePoints = points;
+        plane->normal = normalFromPoints(points);
         refreshDerivedPlaneData(*plane);
         selection.selectPlane(planeId);
         return true;
@@ -266,6 +306,16 @@ bool MockPlaneService::updatePlaneColor(GuiScenario& scenario, int planeId, Vec3
 {
     if (GuiPlane* plane = findPlane(scenario, planeId)) {
         plane->color = {clamp01(color.x), clamp01(color.y), clamp01(color.z)};
+        return true;
+    }
+
+    return false;
+}
+
+bool MockPlaneService::updatePlaneNormal(GuiScenario& scenario, int planeId, Vec3 normal)
+{
+    if (GuiPlane* plane = findPlane(scenario, planeId)) {
+        plane->normal = normalize(normal);
         return true;
     }
 
@@ -324,6 +374,7 @@ void MockPlaneService::addPlane(
     plane.width = width;
     plane.height = height;
     plane.orientation = orientation;
+    plane.normal = normalForPlane(center, orientation);
     plane.name = "Plane " + std::to_string(id);
     plane.visible = true;
     plane.absorption = clamp01(scenario.simulationConfig.globalAbsorption);
