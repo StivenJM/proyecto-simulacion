@@ -98,6 +98,13 @@ const GuiTriangle* findSelectedTriangle(const GuiPlane* plane, int triangleId)
     return nullptr;
 }
 
+float clamp01(float value)
+{
+    if (value < 0.0f) return 0.0f;
+    if (value > 1.0f) return 1.0f;
+    return value;
+}
+
 }  // namespace
 
 PreparationScreen::PreparationScreen(
@@ -447,9 +454,29 @@ void PreparationScreen::updateRayCount(int rayCount)
     scenario_.simulationConfig.rayCount = rayCount < 1 ? 1 : rayCount;
 }
 
+int PreparationScreen::meshSubdivisions() const
+{
+    return scenario_.simulationConfig.meshSubdivisions;
+}
+
+void PreparationScreen::updateMeshSubdivisions(int meshSubdivisions)
+{
+    scenario_.simulationConfig.meshSubdivisions = meshSubdivisions < 1 ? 1 : meshSubdivisions;
+}
+
 float PreparationScreen::globalAbsorption() const
 {
     return scenario_.simulationConfig.globalAbsorption;
+}
+
+float PreparationScreen::diffusionCoefficient() const
+{
+    return scenario_.simulationConfig.diffusionCoefficient;
+}
+
+void PreparationScreen::updateDiffusionCoefficient(float diffusionCoefficient)
+{
+    scenario_.simulationConfig.diffusionCoefficient = clamp01(diffusionCoefficient);
 }
 
 const GuiPlaneDraft& PreparationScreen::draft() const

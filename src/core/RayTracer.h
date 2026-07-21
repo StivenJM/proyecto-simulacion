@@ -9,6 +9,7 @@ public:
     struct TraceOutput {
         std::vector<ReflectionRaySegment> rays;
         std::vector<ReceiverEnergySample> receiverEnergy;
+        std::vector<TriangleEnergySample> diffuseSeeds;
     };
 
     // RF-07, RF-08, RF-09, RF-10: Lanza rayos desde la fuente, calcula rebotes especulares,

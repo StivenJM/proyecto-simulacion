@@ -19,21 +19,11 @@ core::ScenarioData toCoreScenario(const GuiScenario& scenario)
         surface.id = plane.id;
         surface.absorption = static_cast<double>(plane.absorption);
 
-        for (const GuiTriangle& triangle : plane.triangles) {
-            if (!triangle.visible) {
-                continue;
-            }
-
-            surface.triangles.push_back({
-                triangle.id,
-                plane.id,
-                toCore(triangle.vertices[0]),
-                toCore(triangle.vertices[1]),
-                toCore(triangle.vertices[2]),
-            });
+        for (const Vec3& point : plane.outlinePoints) {
+            surface.outlinePoints.push_back(toCore(point));
         }
 
-        if (!surface.triangles.empty()) {
+        if (surface.outlinePoints.size() >= 3) {
             mapped.surfaces.push_back(std::move(surface));
         }
     }

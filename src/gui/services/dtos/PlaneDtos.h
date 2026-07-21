@@ -12,7 +12,7 @@ struct PlaneDto {
     float width = 1.0f;
     float height = 1.0f;
     PlaneOrientation orientation = PlaneOrientation::Horizontal;
-    float absorption = 0.0f;
+    float absorption = 0.2f;
     std::vector<Vec3> outlinePoints;
 };
 

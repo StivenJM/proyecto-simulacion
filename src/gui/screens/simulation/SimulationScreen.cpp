@@ -13,7 +13,6 @@ namespace {
 constexpr float maxSimulationSeconds = 1.0f;
 constexpr float minSimulationSpeedMultiplier = 0.001f;
 constexpr float maxSimulationSpeedMultiplier = 2.00f;
-constexpr float soundSpeedMetersPerSecond = 340.0f;
 constexpr float initialRayParticleRadius = 0.133f;
 
 float clamp01(float value)
@@ -58,39 +57,6 @@ Vec3 scale(Vec3 value, float factor)
 Vec3 lerp(Vec3 from, Vec3 to, float amount)
 {
     return add(from, scale(subtract(to, from), amount));
-}
-
-Vec3 deterministicOffset(int rayIndex, int bounceIndex)
-{
-    const float a = static_cast<float>((rayIndex * 37 + bounceIndex * 17) % 100) / 100.0f - 0.5f;
-    const float b = static_cast<float>((rayIndex * 19 + bounceIndex * 29) % 100) / 100.0f - 0.5f;
-    return {a * 0.18f, b * 0.18f, (a - b) * 0.08f};
-}
-
-Vec3 triangleOrPlaneSamplePoint(const GuiPlane& plane, int rayIndex, int bounceIndex, int& triangleId)
-{
-    if (!plane.triangles.empty()) {
-        const std::size_t triangleIndex = static_cast<std::size_t>((rayIndex + bounceIndex) % static_cast<int>(plane.triangles.size()));
-        triangleId = plane.triangles[triangleIndex].id;
-        return add(plane.triangles[triangleIndex].centroid, deterministicOffset(rayIndex, bounceIndex));
-    }
-
-    triangleId = -1;
-    return add(plane.center, deterministicOffset(rayIndex, bounceIndex));
-}
-
-float segmentTravelTime(Vec3 start, Vec3 end)
-{
-    return distance(start, end) / soundSpeedMetersPerSecond;
-}
-
-Vec3 planeSamplePoint(const GuiPlane& plane)
-{
-    if (!plane.triangles.empty()) {
-        return plane.triangles.front().centroid;
-    }
-
-    return plane.center;
 }
 
 const char* stateLabel(SimulationRunState state)

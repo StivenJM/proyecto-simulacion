@@ -13,7 +13,7 @@ public:
         const DiffusionMatrixData&       diffusion,
         const std::vector<TriangleData>& triangles,
         const std::vector<SurfaceData>&  surfaces,
-        double                           initialEnergy,
+        const std::vector<TriangleEnergySample>& initialSeeds,
         const SimulationConfig&          config
     );
 };

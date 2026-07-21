@@ -18,6 +18,7 @@ add_library(simulation_core STATIC
     src/core/ServiceFactory.cpp
     src/core/GeometryCalculator.cpp
     src/core/RayTracer.cpp
+    src/core/SurfaceTriangulator.cpp
     src/core/DiffuseEnergySolver.cpp
     src/core/CoreSimulationService.cpp
     src/core/MockSimulationService.cpp

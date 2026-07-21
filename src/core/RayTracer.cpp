@@ -197,8 +197,20 @@ RayTracer::TraceOutput RayTracer::trace(
             if (timeMs <= config.durationMs)
                 output.rays.push_back({origin, hitPoint, energy, timeMs});
 
-            // RF-08: aplicar absorcion del plano impactado
-            energy = energy * (1.0 - allTris[nearestIdx].absorption);
+            // RF-08: aplicar absorcion del plano impactado y separar la energia difusa sembrada.
+            const double remainingEnergy = energy * (1.0 - allTris[nearestIdx].absorption);
+            const double diffuseEnergy = remainingEnergy * config.diffusionCoefficient;
+            if (timeMs <= config.durationMs && diffuseEnergy > 0.0) {
+                const TriangleData& hitTriangle = allTris[nearestIdx].tri;
+                output.diffuseSeeds.push_back({
+                    hitTriangle.id,
+                    hitTriangle.surfaceId,
+                    timeMs,
+                    diffuseEnergy
+                });
+            }
+
+            energy = remainingEnergy - diffuseEnergy;
             origin    = hitPoint;
             direction = reflect(direction, GeometryCalculator::normalVector(allTris[nearestIdx].tri));
         }

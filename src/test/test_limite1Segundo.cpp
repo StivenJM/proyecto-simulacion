@@ -14,7 +14,7 @@ TEST(Limite1Segundo, ValorPorDefectoEsUnSegundo) {
     EXPECT_LE(cfg.durationMs, 1000);
 }
 
-TEST(Limite1Segundo, Bug_DiffuseEnergySolverNoRechazaDuracionMayorAUnSegundo) {
+TEST(Limite1Segundo, DiffuseEnergySolverRecortaDuracionMayorAUnSegundo) {
     TriangleData a = T0_piso();
     TriangleData b = T1_oeste();
     std::vector<TriangleData> tris = {a, b};
@@ -27,19 +27,16 @@ TEST(Limite1Segundo, Bug_DiffuseEnergySolverNoRechazaDuracionMayorAUnSegundo) {
     cfg.durationMs = 2500; // 2.5 segundos: viola el enunciado
     cfg.soundSpeed = 340.0;
 
-    auto samples = DiffuseEnergySolver::solve(diff, tris, surfaces, 1.0, cfg);
+    auto samples = DiffuseEnergySolver::solve(diff, tris, surfaces, seedEnergy(a, 1.0), cfg);
 
     int maxTimeMs = 0;
     for (auto& s : samples) maxTimeMs = std::max(maxTimeMs, s.timeMs);
 
-    EXPECT_GT(maxTimeMs, 1000)
-        << "BUG: el solver de difusion genero muestras con timeMs=" << maxTimeMs
-        << " ms, superando ampliamente el limite de 1000 ms (1 segundo) "
-           "exigido por el enunciado. No existe ninguna validacion que "
-           "rechace o recorte durationMs > 1000.";
+    EXPECT_LE(maxTimeMs, 1000)
+        << "El solver de difusion debe recortar durationMs al limite de 1000 ms.";
 }
 
-TEST(Limite1Segundo, Bug_CoreSimulationServiceNoValidaDuracionMaxima) {
+TEST(Limite1Segundo, CoreSimulationServiceRecortaDuracionMaximaEnDifusion) {
     ScenarioData scenario = buildScenarioS1(0.1);
     SimulationConfig cfg = buildConfigS1();
     cfg.durationMs = 60000; // 60 segundos: claramente fuera de especificacion
@@ -47,15 +44,13 @@ TEST(Limite1Segundo, Bug_CoreSimulationServiceNoValidaDuracionMaxima) {
     CoreSimulationService service;
     SimulationResult result = service.runSimulation(scenario, cfg);
 
-    // El codigo actual acepta la simulacion sin fallar ni recortar la
-    // duracion (result.success sigue siendo true), lo que confirma que no
-    // hay ninguna validacion de negocio para el limite de 1 segundo.
-    EXPECT_TRUE(result.success)
-        << "Documenta que el servicio ACEPTA (incorrectamente, segun el "
-           "enunciado) una duracion de 60000 ms sin rechazarla.";
+    ASSERT_TRUE(result.success);
+    for (const auto& sample : result.triangleEnergy) {
+        EXPECT_LE(sample.timeMs, 1000);
+    }
 }
 
-TEST(Limite1Segundo, DISABLED_EspecificacionCorrecta_ClampAUnSegundo) {
+TEST(Limite1Segundo, EspecificacionCorrecta_ClampAUnSegundo) {
     TriangleData a = T0_piso();
     TriangleData b = T1_oeste();
     std::vector<TriangleData> tris = {a, b};
@@ -68,7 +63,7 @@ TEST(Limite1Segundo, DISABLED_EspecificacionCorrecta_ClampAUnSegundo) {
     cfg.durationMs = 2500; // se solicitan 2.5 s
     cfg.soundSpeed = 340.0;
 
-    auto samples = DiffuseEnergySolver::solve(diff, tris, surfaces, 1.0, cfg);
+    auto samples = DiffuseEnergySolver::solve(diff, tris, surfaces, seedEnergy(a, 1.0), cfg);
     int maxTimeMs = 0;
     for (auto& s : samples) maxTimeMs = std::max(maxTimeMs, s.timeMs);
 

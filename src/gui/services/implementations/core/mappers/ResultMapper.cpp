@@ -17,17 +17,6 @@ float clamp01(float value)
     return value;
 }
 
-std::unordered_map<int, int> buildTrianglePlaneLookup(const GuiScenario& scenario)
-{
-    std::unordered_map<int, int> lookup;
-    for (const GuiPlane& plane : scenario.planes) {
-        for (const GuiTriangle& triangle : plane.triangles) {
-            lookup[triangle.id] = plane.id;
-        }
-    }
-    return lookup;
-}
-
 std::unordered_map<int, std::string> buildPlaneNameLookup(const GuiScenario& scenario)
 {
     std::unordered_map<int, std::string> lookup;
@@ -59,19 +48,18 @@ SimulationResultDto toGuiResult(const core::SimulationResult& result, const GuiS
     mapped.message = result.message;
     mapped.state.running = result.success;
 
-    const auto trianglePlaneLookup = buildTrianglePlaneLookup(scenario);
     const auto planeNameLookup = buildPlaneNameLookup(scenario);
 
     std::unordered_map<int, float> planeEnergy;
     float maxEnergy = 0.0001f;
     for (const core::TriangleEnergySample& sample : result.triangleEnergy) {
-        const auto planeIt = trianglePlaneLookup.find(sample.triangleId);
-        if (planeIt == trianglePlaneLookup.end()) {
+        int planeId = sample.surfaceId;
+        if (planeNameLookup.find(planeId) == planeNameLookup.end()) {
             continue;
         }
 
         const float energy = static_cast<float>(sample.energy);
-        planeEnergy[planeIt->second] = std::max(planeEnergy[planeIt->second], energy);
+        planeEnergy[planeId] = std::max(planeEnergy[planeId], energy);
         maxEnergy = std::max(maxEnergy, energy);
     }
 
@@ -83,10 +71,12 @@ SimulationResultDto toGuiResult(const core::SimulationResult& result, const GuiS
     }
 
     for (const core::TriangleEnergySample& sample : result.triangleEnergy) {
-        const auto planeIt = trianglePlaneLookup.find(sample.triangleId);
-        if (planeIt != trianglePlaneLookup.end()) {
-            mapped.overlay.triangleEnergy.push_back({planeIt->second, sample.triangleId, clamp01(static_cast<float>(sample.energy) / maxEnergy)});
+        int planeId = sample.surfaceId;
+        if (planeNameLookup.find(planeId) == planeNameLookup.end()) {
+            continue;
         }
+
+        mapped.overlay.triangleEnergy.push_back({planeId, sample.triangleId, clamp01(static_cast<float>(sample.energy) / maxEnergy)});
     }
 
     int nextRayId = 1;

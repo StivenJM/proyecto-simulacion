@@ -38,6 +38,7 @@ add_executable(ambiente3d_tests
   test_reflexionDifusa.cpp
   test_matrizEnergia.cpp
   test_integracion.cpp
+  test_surface_triangulator.cpp
   test_utils.cpp
 )
 
@@ -49,6 +50,7 @@ else()
     ${PROJECT_ROOT}/src/core/ServiceFactory.cpp
     ${PROJECT_ROOT}/src/core/GeometryCalculator.cpp
     ${PROJECT_ROOT}/src/core/RayTracer.cpp
+    ${PROJECT_ROOT}/src/core/SurfaceTriangulator.cpp
     ${PROJECT_ROOT}/src/core/DiffuseEnergySolver.cpp
     ${PROJECT_ROOT}/src/core/CoreSimulationService.cpp
     ${PROJECT_ROOT}/src/core/MockSimulationService.cpp
@@ -65,4 +67,5 @@ target_include_directories(ambiente3d_tests PRIVATE
 target_link_libraries(ambiente3d_tests PRIVATE gtest gtest_main)
 
 include(GoogleTest)
+enable_testing()
 gtest_discover_tests(ambiente3d_tests)
