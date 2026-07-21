@@ -8,19 +8,19 @@
 //el resultado EXACTO del programa contra el resultado teorico esperado.
 //- Helpers de comparacion con tolerancia (para floats/doubles).
 
-#include "services/SimulationTypes.h"
+#include "SimulationTypes.h"
 #include <cmath>
 #include <vector>
 
 namespace test_utils {
 
-using services::Vec3;
-using services::TriangleData;
-using services::SurfaceData;
-using services::SourceData;
-using services::ReceiverData;
-using services::ScenarioData;
-using services::SimulationConfig;
+using core::Vec3;
+using core::TriangleData;
+using core::SurfaceData;
+using core::SourceData;
+using core::ReceiverData;
+using core::ScenarioData;
+using core::SimulationConfig;
 
 constexpr double kEpsilon = 1e-6;
 
