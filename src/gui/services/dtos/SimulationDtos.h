@@ -3,6 +3,7 @@
 #include "gui/math/MathTypes.h"
 #include "gui/rendering/RenderTypes.h"
 
+#include <array>
 #include <string>
 #include <vector>
 
@@ -44,6 +45,7 @@ struct GuiSimulationRay {
 struct DiffusionTriangleDto {
     int triangleId = 0;
     int planeId = 0;
+    std::array<Vec3, 3> vertices{};
 };
 
 struct DiffusionDataDto {
