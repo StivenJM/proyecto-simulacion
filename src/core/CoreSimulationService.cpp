@@ -63,8 +63,24 @@ SimulationResult CoreSimulationService::runSimulation(
         return result;
     }
 
-    // RF-03 a RF-06: construir matriz de difusion
-    result.diffusion = GeometryCalculator::buildDiffusionMatrix(allTriangles, config.soundSpeed);
+    const bool useHierarchicalDiffusion =
+        config.useHierarchicalDiffusion && config.diffusionSolverMode == DiffusionSolverMode::Hierarchical;
+    if (useHierarchicalDiffusion) {
+        result.hierarchicalDiffusion = GeometryCalculator::buildHierarchicalDiffusionData(
+            allTriangles,
+            triangulatedSurfaces,
+            config
+        );
+    }
+
+    if (!useHierarchicalDiffusion || config.exportDenseDiffusionMatrices) {
+        const auto denseMatrixStart = std::chrono::steady_clock::now();
+        result.diffusion = GeometryCalculator::buildDiffusionMatrix(allTriangles, config.soundSpeed);
+        if (useHierarchicalDiffusion) {
+            result.hierarchicalDiffusion.metrics.denseMatrixExportDurationMs = elapsedMs(denseMatrixStart);
+            result.hierarchicalDiffusion.metrics.denseMatrixExported = true;
+        }
+    }
     result.diffusionTriangles = allTriangles;
 
     const int durationMs = std::max(0, std::min(config.durationMs, 1000));
@@ -89,9 +105,13 @@ SimulationResult CoreSimulationService::runSimulation(
                   << " receiverSampleCount=" << result.receiverEnergy.size() << "\n";
 
         // RF-07, RF-08: energia difusa sembrada por impactos reales de rayos.
-        auto diffuseResult = DiffuseEnergySolver::solveDetailed(
-            result.diffusion, allTriangles, triangulatedSurfaces, traceOut.diffuseSeeds, config
-        );
+        auto diffuseResult = useHierarchicalDiffusion
+            ? DiffuseEnergySolver::solveHierarchical(
+                result.hierarchicalDiffusion, allTriangles, triangulatedSurfaces, traceOut.diffuseSeeds, config
+              )
+            : DiffuseEnergySolver::solveDetailed(
+                result.diffusion, allTriangles, triangulatedSurfaces, traceOut.diffuseSeeds, config
+              );
         const auto mergeDiffuseStart = std::chrono::steady_clock::now();
         for (auto& sample : diffuseResult.samples) result.triangleEnergy.push_back(std::move(sample));
         for (std::size_t triangleIndex = 0; triangleIndex < diffuseResult.energyByTriangleTime.size(); ++triangleIndex) {

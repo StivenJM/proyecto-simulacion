@@ -19,9 +19,18 @@ Vec3 bilinear(const Vec3& p00, const Vec3& p10, const Vec3& p11, const Vec3& p01
     };
 }
 
-TriangleData makeTriangle(int id, int surfaceId, Vec3 a, Vec3 b, Vec3 c)
+TriangleData makeTriangle(int id, int surfaceId, Vec3 a, Vec3 b, Vec3 c, int row = -1, int column = -1, int cellId = -1)
 {
-    return {id, surfaceId, a, b, c};
+    TriangleData triangle;
+    triangle.id = id;
+    triangle.surfaceId = surfaceId;
+    triangle.a = a;
+    triangle.b = b;
+    triangle.c = c;
+    triangle.gridRow = row;
+    triangle.gridColumn = column;
+    triangle.cellId = cellId;
+    return triangle;
 }
 
 } // namespace
@@ -73,8 +82,9 @@ SurfaceData SurfaceTriangulator::triangulateSurface(
                 const Vec3 topLeft = bilinear(p00, p10, p11, p01, u0, v1);
                 const Vec3 topRight = bilinear(p00, p10, p11, p01, u1, v1);
 
-                mapped.triangles.push_back(makeTriangle(nextTriangleId++, surface.id, bottomLeft, bottomRight, topRight));
-                mapped.triangles.push_back(makeTriangle(nextTriangleId++, surface.id, bottomLeft, topRight, topLeft));
+                const int cellId = j * meshSubdivisions + i;
+                mapped.triangles.push_back(makeTriangle(nextTriangleId++, surface.id, bottomLeft, bottomRight, topRight, j, i, cellId));
+                mapped.triangles.push_back(makeTriangle(nextTriangleId++, surface.id, bottomLeft, topRight, topLeft, j, i, cellId));
             }
         }
         return mapped;

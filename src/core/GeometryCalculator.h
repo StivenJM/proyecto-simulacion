@@ -31,6 +31,12 @@ public:
         const std::vector<TriangleData>& triangles,
         double soundSpeed
     );
+
+    static HierarchicalDiffusionData buildHierarchicalDiffusionData(
+        const std::vector<TriangleData>& triangles,
+        const std::vector<SurfaceData>& surfaces,
+        const SimulationConfig& config
+    );
 };
 
 } // namespace core
