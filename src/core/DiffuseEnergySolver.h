@@ -24,6 +24,14 @@ public:
         const std::vector<TriangleEnergySample>& initialSeeds,
         const SimulationConfig&          config
     );
+
+    static DiffuseEnergyResult solveHierarchical(
+        HierarchicalDiffusionData&       hierarchy,
+        const std::vector<TriangleData>& triangles,
+        const std::vector<SurfaceData>&  surfaces,
+        const std::vector<TriangleEnergySample>& initialSeeds,
+        const SimulationConfig&          config
+    );
 };
 
 } // namespace core
