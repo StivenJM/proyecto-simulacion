@@ -33,11 +33,12 @@ void MockSourceService::addSource(GuiScenario& scenario, GuiSelection& selection
 {
     const int id = scenario.nextSourceId++;
     const float offset = static_cast<float>(scenario.sources.size()) * 0.35f;
+    const bool firstSource = scenario.sources.empty();
 
     GuiSource source;
     source.id = id;
     source.name = "Source " + std::to_string(id);
-    source.position = {-0.75f + offset, 0.0f, 0.0f};
+    source.position = firstSource ? Vec3{-1.5f, -1.5f, -1.5f} : Vec3{-0.75f + offset, 0.0f, 0.0f};
     source.visible = true;
     source.color = {1.0f, 132.0f / 255.0f, 120.0f / 255.0f};
     scenario.sources.push_back(source);
