@@ -4,6 +4,8 @@
 
 #include <imgui.h>
 
+#include <algorithm>
+
 namespace gui {
 namespace {
 
@@ -21,6 +23,8 @@ void separatorText(const char* label)
 
 void GeneralPropertiesPanel::render(PreparationScreen& screen)
 {
+    constexpr int kMaxMeshSubdivisions = 10;
+
     separatorText("General configuration");
     ImGui::TextWrapped("Global simulation values used when the simulation starts.");
 
@@ -34,13 +38,13 @@ void GeneralPropertiesPanel::render(PreparationScreen& screen)
     ImGui::TextDisabled("This value is sent to the core simulation as the global ray count.");
 
     int meshSubdivisions = screen.meshSubdivisions();
-    if (ImGui::DragInt("Mesh subdivisions", &meshSubdivisions, 1.0f, 1, 1000)) {
-        screen.updateMeshSubdivisions(meshSubdivisions);
+    if (ImGui::DragInt("Mesh subdivisions", &meshSubdivisions, 1.0f, 1, kMaxMeshSubdivisions)) {
+        screen.updateMeshSubdivisions(std::clamp(meshSubdivisions, 1, kMaxMeshSubdivisions));
     }
     if (ImGui::IsItemDeactivatedAfterEdit()) {
-        screen.updateMeshSubdivisions(meshSubdivisions);
+        screen.updateMeshSubdivisions(std::clamp(meshSubdivisions, 1, kMaxMeshSubdivisions));
     }
-    ImGui::TextDisabled("Core simulation builds an N x N mesh for four-point planes.");
+    ImGui::TextDisabled("Core simulation builds an N x N mesh for four-point planes. Maximum: 10.");
 
     ImGui::Separator();
     float absorption = screen.globalAbsorption();

@@ -37,6 +37,13 @@ SimulationResult CoreSimulationService::runSimulation(
 
     // RF-03 a RF-06: construir matriz de difusion
     result.diffusion = GeometryCalculator::buildDiffusionMatrix(allTriangles, config.soundSpeed);
+    result.diffusionTriangles = allTriangles;
+
+    const int durationMs = std::max(0, std::min(config.durationMs, 1000));
+    result.diffuseEnergyByTriangleTime.assign(
+        allTriangles.size(),
+        std::vector<double>(static_cast<std::size_t>(durationMs + 1), 0.0)
+    );
 
     double totalInitialEnergy = 0.0;
     for (const auto& src : scenario.sources) totalInitialEnergy += src.energy;
@@ -48,10 +55,15 @@ SimulationResult CoreSimulationService::runSimulation(
         for (auto& sample : traceOut.receiverEnergy) result.receiverEnergy.push_back(std::move(sample));
 
         // RF-07, RF-08: energia difusa sembrada por impactos reales de rayos.
-        auto triSamples = DiffuseEnergySolver::solve(
+        auto diffuseResult = DiffuseEnergySolver::solveDetailed(
             result.diffusion, allTriangles, triangulatedSurfaces, traceOut.diffuseSeeds, config
         );
-        for (auto& sample : triSamples) result.triangleEnergy.push_back(std::move(sample));
+        for (auto& sample : diffuseResult.samples) result.triangleEnergy.push_back(std::move(sample));
+        for (std::size_t triangleIndex = 0; triangleIndex < diffuseResult.energyByTriangleTime.size(); ++triangleIndex) {
+            for (std::size_t timeIndex = 0; timeIndex < diffuseResult.energyByTriangleTime[triangleIndex].size(); ++timeIndex) {
+                result.diffuseEnergyByTriangleTime[triangleIndex][timeIndex] += diffuseResult.energyByTriangleTime[triangleIndex][timeIndex];
+            }
+        }
     }
 
     result.totalReceiverEnergy = 0.0;

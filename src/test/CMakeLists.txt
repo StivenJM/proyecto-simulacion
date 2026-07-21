@@ -38,8 +38,13 @@ add_executable(ambiente3d_tests
   test_reflexionDifusa.cpp
   test_matrizEnergia.cpp
   test_integracion.cpp
+  test_gui_diffusion.cpp
   test_surface_triangulator.cpp
   test_utils.cpp
+  ${PROJECT_ROOT}/src/gui/services/implementations/core/CoreSimulationService.cpp
+  ${PROJECT_ROOT}/src/gui/services/implementations/core/mappers/ResultMapper.cpp
+  ${PROJECT_ROOT}/src/gui/services/implementations/core/mappers/ScenarioMapper.cpp
+  ${PROJECT_ROOT}/src/gui/services/implementations/core/mappers/VectorMapper.cpp
 )
 
 if(TARGET simulation_core)

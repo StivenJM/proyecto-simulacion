@@ -41,6 +41,21 @@ struct GuiSimulationRay {
     bool visible = true;
 };
 
+struct DiffusionTriangleDto {
+    int triangleId = 0;
+    int planeId = 0;
+};
+
+struct DiffusionDataDto {
+    std::vector<DiffusionTriangleDto> triangles;
+    std::vector<std::vector<double>> distances;
+    std::vector<std::vector<int>> timesMs;
+    std::vector<std::vector<double>> percentages;
+    std::vector<std::vector<bool>> visibility;
+    std::vector<std::vector<double>> energyByTriangleTime;
+    int timeStepMs = 1;
+};
+
 struct SimulationResultDto {
     SimulationStateDto state;
     bool success = false;
@@ -49,6 +64,7 @@ struct SimulationResultDto {
     int configuredRayCount = 0;
     std::vector<SimulationPlaneEnergyDto> planeEnergy;
     std::vector<GuiSimulationRay> rays;
+    DiffusionDataDto diffusion;
     RenderSimulationOverlay overlay;
 };
 

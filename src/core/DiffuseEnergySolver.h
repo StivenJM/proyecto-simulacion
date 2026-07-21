@@ -16,6 +16,14 @@ public:
         const std::vector<TriangleEnergySample>& initialSeeds,
         const SimulationConfig&          config
     );
+
+    static DiffuseEnergyResult solveDetailed(
+        const DiffusionMatrixData&       diffusion,
+        const std::vector<TriangleData>& triangles,
+        const std::vector<SurfaceData>&  surfaces,
+        const std::vector<TriangleEnergySample>& initialSeeds,
+        const SimulationConfig&          config
+    );
 };
 
 } // namespace core
