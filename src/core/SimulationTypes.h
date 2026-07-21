@@ -64,7 +64,7 @@ struct SimulationConfig {
     int    durationMs           = 1000;
     double soundSpeed           = 340.0;
     int    rayCount             = 642;
-    int    meshSubdivisions     = 1;
+    int    meshSubdivisions     = 5;
     double diffusionCoefficient = 0.1;
     double hierarchySpatialTolerance = 0.20;
     double hierarchyWeightTolerance = 0.03;
