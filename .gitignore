@@ -3,5 +3,6 @@
 .opencode
 
 build/
+build-tests/
 workspace/
 imgui.ini

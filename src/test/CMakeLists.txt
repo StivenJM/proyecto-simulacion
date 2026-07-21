@@ -13,6 +13,7 @@ include(FetchContent)
 FetchContent_Declare(
   googletest
   URL https://codeload.github.com/google/googletest/tar.gz/refs/tags/v1.14.0
+  DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 # Evita que GoogleTest sobreescriba las flags de compilador/enlazador del
 # proyecto padre en Windows (no afecta Linux, se deja por buena practica).
@@ -38,12 +39,21 @@ add_executable(ambiente3d_tests
   test_matrizEnergia.cpp
   test_integracion.cpp
   test_utils.cpp
-
-  ${PROJECT_ROOT}/src/core/GeometryCalculator.cpp
-  ${PROJECT_ROOT}/src/core/RayTracer.cpp
-  ${PROJECT_ROOT}/src/core/DiffuseEnergySolver.cpp
-  ${PROJECT_ROOT}/src/core/CoreSimulationService.cpp
 )
+
+if(TARGET simulation_core)
+  target_link_libraries(ambiente3d_tests PRIVATE simulation_core)
+else()
+  target_sources(ambiente3d_tests PRIVATE
+    ${PROJECT_ROOT}/src/core/AppConfig.cpp
+    ${PROJECT_ROOT}/src/core/ServiceFactory.cpp
+    ${PROJECT_ROOT}/src/core/GeometryCalculator.cpp
+    ${PROJECT_ROOT}/src/core/RayTracer.cpp
+    ${PROJECT_ROOT}/src/core/DiffuseEnergySolver.cpp
+    ${PROJECT_ROOT}/src/core/CoreSimulationService.cpp
+    ${PROJECT_ROOT}/src/core/MockSimulationService.cpp
+  )
+endif()
 
 target_include_directories(ambiente3d_tests PRIVATE
     ${PROJECT_ROOT}

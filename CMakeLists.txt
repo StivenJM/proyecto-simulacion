@@ -5,6 +5,8 @@ project(AcousticSimulator VERSION 1.0.0)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+option(ACOUSTIC_BUILD_TESTS "Build development-only tests" OFF)
+
 find_package(glfw3 CONFIG REQUIRED)
 find_package(glad CONFIG REQUIRED)
 find_package(imgui CONFIG REQUIRED)
@@ -131,6 +133,13 @@ target_link_libraries(AcousticSimulator
     imgui::imgui
     OpenGL::GL
 )
+
+# -- Tests de desarrollo ------------------------------------------------------
+# Desactivados por defecto para no ensuciar el build/paquete original.
+if(ACOUSTIC_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(src/test)
+endif()
 
 # ── Instalador / paquete distribuible ───────────────────────────────────────
 install(TARGETS AcousticSimulator RUNTIME DESTINATION bin)
