@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include "core/CoreSimulationService.h"
 #include "core/GeometryCalculator.h"
+#include "core/SurfaceTriangulator.h"
 #include "test_utils.h"
 
 using namespace core;
@@ -35,8 +36,8 @@ TEST(Integracion, EscenarioS1_EjecutaConExito) {
     SimulationResult result = service.runSimulation(scenario, cfg);
 
     ASSERT_TRUE(result.success) << result.message;
-    // La matriz de difusion debe tener dimension 4x4 (4 triangulos: piso,
-    // oeste, techo, sur).
+    // La matriz de difusion debe tener dimension 4x4: el core triangula las
+    // cuatro superficies outlinePoints del escenario S1.
     EXPECT_EQ(result.diffusion.distances.size(), 4u);
 }
 
@@ -48,9 +49,14 @@ TEST(Integracion, MatrizDeDifusionCoincideConCalculoAislado) {
     SimulationResult result = service.runSimulation(scenario, cfg);
     ASSERT_TRUE(result.success);
 
-    // Recalculamos la matriz de forma independiente
+    // Recalculamos la matriz de forma independiente usando los triangulos que
+    // genera el core desde outlinePoints + meshSubdivisions.
     std::vector<TriangleData> allTris;
-    for (auto& surf : scenario.surfaces)
+    const std::vector<SurfaceData> triangulated = SurfaceTriangulator::triangulateSurfaces(
+        scenario.surfaces,
+        cfg.meshSubdivisions
+    );
+    for (auto& surf : triangulated)
         for (auto& tri : surf.triangles) allTris.push_back(tri);
     auto diffEsperado = GeometryCalculator::buildDiffusionMatrix(allTris, cfg.soundSpeed);
 

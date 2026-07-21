@@ -33,12 +33,28 @@ void GeneralPropertiesPanel::render(PreparationScreen& screen)
     }
     ImGui::TextDisabled("This value is sent to the core simulation as the global ray count.");
 
+    int meshSubdivisions = screen.meshSubdivisions();
+    if (ImGui::DragInt("Mesh subdivisions", &meshSubdivisions, 1.0f, 1, 1000)) {
+        screen.updateMeshSubdivisions(meshSubdivisions);
+    }
+    if (ImGui::IsItemDeactivatedAfterEdit()) {
+        screen.updateMeshSubdivisions(meshSubdivisions);
+    }
+    ImGui::TextDisabled("Core simulation builds an N x N mesh for four-point planes.");
+
     ImGui::Separator();
     float absorption = screen.globalAbsorption();
     ImGui::Text("Global absorption: %.2f (%.0f%%)", absorption, absorption * 100.0f);
     ImGui::TextDisabled("Applies one absorption coefficient to every plane. Individual plane edits can still override it afterward.");
     if (ImGui::SliderFloat("All planes absorption", &absorption, 0.0f, 1.0f, "%.2f")) {
         screen.updateAllPlaneAbsorption(absorption);
+    }
+
+    float diffusion = screen.diffusionCoefficient();
+    ImGui::Text("Diffusion coefficient: %.2f (%.0f%%)", diffusion, diffusion * 100.0f);
+    ImGui::TextDisabled("Controls how much post-absorption energy is sent to diffuse propagation.");
+    if (ImGui::SliderFloat("Diffusion coefficient", &diffusion, 0.0f, 1.0f, "%.2f")) {
+        screen.updateDiffusionCoefficient(diffusion);
     }
 }
 

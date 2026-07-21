@@ -29,11 +29,11 @@ SimulationResult MockSimulationService::runSimulation(
     result.totalReceiverEnergy = 0.84;
 
     result.triangleEnergy = {
-        {0,   0, 0.9},
-        {1,  50, 0.7},
-        {2, 100, 0.5},
-        {3, 150, 0.3},
-        {4, 200, 0.1},
+        {0, 0,   0, 0.9},
+        {1, 0,  50, 0.7},
+        {2, 1, 100, 0.5},
+        {3, 1, 150, 0.3},
+        {4, 2, 200, 0.1},
     };
 
     result.diffusion.distances   = {{0.0, 3.0}, {3.0, 0.0}};

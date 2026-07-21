@@ -23,7 +23,8 @@ struct TriangleData {
 // Una superficie de la sala, compuesta por uno o más triángulos.
 struct SurfaceData {
     int                       id         = 0;
-    double                    absorption = 0.1;
+    double                    absorption = 0.2;
+    std::vector<Vec3>         outlinePoints;
     std::vector<TriangleData> triangles;
 };
 
@@ -53,7 +54,8 @@ struct SimulationConfig {
     int    durationMs           = 1000;
     double soundSpeed           = 340.0;
     int    rayCount             = 642;
-    double diffusionCoefficient = 0.5;
+    int    meshSubdivisions     = 1;
+    double diffusionCoefficient = 0.1;
 };
 
 // Segmento de rayo de reflexión con energía y tiempo de llegada.
@@ -74,6 +76,7 @@ struct ReceiverEnergySample {
 // Energía almacenada en un triángulo en un instante de tiempo.
 struct TriangleEnergySample {
     int    triangleId = 0;
+    int    surfaceId  = 0;
     int    timeMs     = 0;
     double energy     = 0.0;
 };

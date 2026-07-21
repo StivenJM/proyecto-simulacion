@@ -25,11 +25,11 @@ TEST(ReflexionDifusa, SinTriangulos_SinMuestras) {
     std::vector<TriangleData> tris;
     std::vector<SurfaceData> surfaces;
     SimulationConfig cfg = buildConfigS1(100);
-    auto samples = DiffuseEnergySolver::solve(vacio, tris, surfaces, 1.0, cfg);
+    auto samples = DiffuseEnergySolver::solve(vacio, tris, surfaces, {}, cfg);
     EXPECT_TRUE(samples.empty());
 }
 
-TEST(ReflexionDifusa, Bug_EnergiaInicialSeReparteUniformeIgnorandoDistancia) {
+TEST(ReflexionDifusa, SemillaExplicitaRespetaTiempoDeVuelo) {
     TriangleData cerca = T0_piso();
     TriangleData lejos = T5_lejano();
     std::vector<TriangleData> tris = {cerca, lejos};
@@ -40,39 +40,32 @@ TEST(ReflexionDifusa, Bug_EnergiaInicialSeReparteUniformeIgnorandoDistancia) {
 
     auto surfaces = makeTwoSurfaces(cerca, lejos, 0.2);
     SimulationConfig cfg = buildConfigS1(150);
-    auto samples = DiffuseEnergySolver::solve(diff, tris, surfaces, 1.0, cfg);
+    auto samples = DiffuseEnergySolver::solve(diff, tris, surfaces, seedEnergy(cerca, 1.0), cfg);
 
-    double energiaLejosEnT0 = maxEnergySampleFor(samples, /*triangleId=*/5, /*timeMs=*/0);
-    ASSERT_GE(energiaLejosEnT0, 0.0) << "Se esperaba una muestra para T5 en t=0";
-    EXPECT_GT(energiaLejosEnT0, 0.0)
-        << "BUG: T5 ya tiene energia (" << energiaLejosEnT0 << ") en t=0 ms, "
-           "pese a que el tiempo de vuelo real hasta T5 es de 96 ms. La "
-           "matriz 'tiempo' se calcula correctamente pero no se usa para "
-           "retrasar la aparicion de la energia inicial.";
-    EXPECT_NEAR(energiaLejosEnT0, 0.5, kEpsilon)
-        << "El valor coincide exactamente con initialEnergy/n = 1.0/2 = 0.5, "
-           "confirmando que es un reparto uniforme por conteo de triangulos, "
-           "no una propagacion fisica dependiente de la distancia.";
+    EXPECT_LT(maxEnergySampleFor(samples, /*triangleId=*/5, /*timeMs=*/0), 0.0)
+        << "T5 no debe tener energia antes del tiempo de vuelo de la semilla.";
+    EXPECT_GT(maxEnergySampleFor(samples, /*triangleId=*/5, /*timeMs=*/96), 0.0)
+        << "T5 debe recibir energia recien al cumplirse el tiempo de vuelo.";
 }
 
-TEST(ReflexionDifusa, DISABLED_EspecificacionCorrecta_SinEnergiaAntesDeTiempoDeVuelo) {
+TEST(ReflexionDifusa, EspecificacionCorrecta_SinEnergiaAntesDeTiempoDeVuelo) {
     TriangleData cerca = T0_piso();
     TriangleData lejos = T5_lejano();
     std::vector<TriangleData> tris = {cerca, lejos};
     auto diff = GeometryCalculator::buildDiffusionMatrix(tris, 340.0);
     auto surfaces = makeTwoSurfaces(cerca, lejos, 0.2);
     SimulationConfig cfg = buildConfigS1(150);
-    auto samples = DiffuseEnergySolver::solve(diff, tris, surfaces, 1.0, cfg);
+    auto samples = DiffuseEnergySolver::solve(diff, tris, surfaces, seedEnergy(cerca, 1.0), cfg);
 
     for (auto& s : samples) {
         if (s.triangleId == 5) {
             EXPECT_GE(s.timeMs, diff.timesMs[0][1])
-                << "T5 no deberia tener energia antes de t=96ms (tiempo de vuelo)";
+                << "T5 no deberia tener energia antes del tiempo de vuelo de la semilla";
         }
     }
 }
 
-TEST(ReflexionDifusa, Bug_LlegadaDeEnergiaIgnoraLaMatrizTiempo) {
+TEST(ReflexionDifusa, LlegadaDeEnergiaRespetaLaMatrizTiempo) {
     TriangleData cerca = T0_piso();
     TriangleData lejos = T5_lejano();
     std::vector<TriangleData> tris = {cerca, lejos};
@@ -80,16 +73,14 @@ TEST(ReflexionDifusa, Bug_LlegadaDeEnergiaIgnoraLaMatrizTiempo) {
     auto surfaces = makeTwoSurfaces(cerca, lejos, 0.2);
     SimulationConfig cfg = buildConfigS1(50); // 5 pasos de 10 ms, todos < 96 ms
 
-    auto samples = DiffuseEnergySolver::solve(diff, tris, surfaces, 1.0, cfg);
+    auto samples = DiffuseEnergySolver::solve(diff, tris, surfaces, seedEnergy(cerca, 1.0), cfg);
 
     int muestrasTempranasDeT5 = 0;
     for (auto& s : samples) {
         if (s.triangleId == 5 && s.timeMs < 96) muestrasTempranasDeT5++;
     }
-    EXPECT_GT(muestrasTempranasDeT5, 0)
-        << "BUG: existen " << muestrasTempranasDeT5 << " muestras de T5 con "
-           "timeMs < 96 ms (el tiempo de vuelo real), lo cual es fisicamente "
-           "imposible y demuestra que 'tiempo' no se respeta como delay.";
+    EXPECT_EQ(muestrasTempranasDeT5, 0)
+        << "No deben existir muestras de T5 antes del tiempo de vuelo real.";
 }
 
 // --- Corte por duracion: energia con arrivalMs > durationMs se descarta ----
@@ -101,7 +92,7 @@ TEST(ReflexionDifusa, CorteRespetaDuracionMaxima) {
     auto surfaces = makeTwoSurfaces(a, b, 0.1);
 
     SimulationConfig cfg = buildConfigS1(5); // duracion menor al primer timeStep completo
-    auto samples = DiffuseEnergySolver::solve(diff, tris, surfaces, 1.0, cfg);
+    auto samples = DiffuseEnergySolver::solve(diff, tris, surfaces, seedEnergy(a, 1.0), cfg);
     for (auto& s : samples) {
         EXPECT_LE(s.timeMs, cfg.durationMs);
     }
@@ -117,6 +108,6 @@ TEST(ReflexionDifusa, EnergiaNuncaNegativa) {
     std::vector<SurfaceData> surfaces = {s0,s1,s2};
 
     SimulationConfig cfg = buildConfigS1(200);
-    auto samples = DiffuseEnergySolver::solve(diff, tris, surfaces, 3.0, cfg);
+    auto samples = DiffuseEnergySolver::solve(diff, tris, surfaces, seedEnergy(tris[0], 3.0), cfg);
     for (auto& s : samples) EXPECT_GE(s.energy, 0.0);
 }

@@ -69,7 +69,11 @@ public:
     bool updateSelectedReceiverVisibility(bool visible);
     int rayCount() const;
     void updateRayCount(int rayCount);
+    int meshSubdivisions() const;
+    void updateMeshSubdivisions(int meshSubdivisions);
     float globalAbsorption() const;
+    float diffusionCoefficient() const;
+    void updateDiffusionCoefficient(float diffusionCoefficient);
     const GuiPlaneDraft& draft() const;
 
 private:

@@ -31,14 +31,13 @@ TEST(Absorcion, AbsorcionCero_SinPerdida) {
 
     SimulationConfig cfg = buildConfigS1(20); // 2 pasos de 10 ms
     double initial = 1.0;
-    auto samples = DiffuseEnergySolver::solve(diff, tris, surfaces, initial, cfg);
+    auto samples = DiffuseEnergySolver::solve(diff, tris, surfaces, seedEnergy(a, initial), cfg);
 
-    // En t=0, cada triangulo arranca con initial/2 = 0.5 (ver bug documentado
-    // en test_reflexionDifusa.cpp sobre el reparto inicial uniforme).
+    // En t=0, la energia difusa nace en la semilla explicita.
     bool encontroT0 = false;
     for (auto& s : samples) {
         if (s.triangleId == 0 && s.timeMs == 0) {
-            EXPECT_NEAR(s.energy, 0.5, kEpsilon);
+            EXPECT_NEAR(s.energy, initial, kEpsilon);
             encontroT0 = true;
         }
     }
@@ -54,7 +53,7 @@ TEST(Absorcion, AbsorcionTotal_PierdeToda) {
     auto surfaces = makeSurfaces({{a, 1.0}, {b, 1.0}});
 
     SimulationConfig cfg = buildConfigS1(50);
-    auto samples = DiffuseEnergySolver::solve(diff, tris, surfaces, 1.0, cfg);
+    auto samples = DiffuseEnergySolver::solve(diff, tris, surfaces, seedEnergy(a, 1.0), cfg);
 
     // Con absorcion=1.0, afterAbsorb=0 en el primer paso, por lo que no
     // deberia haber NINGUNA muestra registrada en t=10ms o posterior (el
@@ -74,20 +73,20 @@ TEST(Absorcion, FormulaMultiplicativaExacta) {
     double absorcion = 0.3;
     auto surfaces = makeSurfaces({{a, absorcion}, {b, absorcion}});
 
-    SimulationConfig cfg = buildConfigS1(10); // un solo paso adicional
+    SimulationConfig cfg = buildConfigS1(10); // T0->T1 llega en 5 ms
     double initial = 1.0;
-    auto samples = DiffuseEnergySolver::solve(diff, tris, surfaces, initial, cfg);
+    auto samples = DiffuseEnergySolver::solve(diff, tris, surfaces, seedEnergy(a, initial), cfg);
 
-    double energiaT1_en_t10 = -1.0;
+    double energiaT1_en_t5 = -1.0;
     for (auto& s : samples) {
-        if (s.triangleId == 1 && s.timeMs == 10) energiaT1_en_t10 = s.energy;
+        if (s.triangleId == 1 && s.timeMs == 5) energiaT1_en_t5 = s.energy;
     }
-    ASSERT_GE(energiaT1_en_t10, 0.0) << "No se encontro muestra para T1 en t=10ms";
-    EXPECT_NEAR(energiaT1_en_t10, 0.35, 1e-6);
+    ASSERT_GE(energiaT1_en_t5, 0.0) << "No se encontro muestra para T1 en t=5ms";
+    EXPECT_NEAR(energiaT1_en_t5, 0.7, 1e-6);
 }
 
-// --- getAbsorption: triangulo desconocido usa el valor por defecto 0.1 -----
-TEST(Absorcion, TrianguloDesconocidoUsaDefaultPuntoUno) {
+// --- getAbsorption: triangulo desconocido usa el valor por defecto 0.2 -----
+TEST(Absorcion, TrianguloDesconocidoUsaDefaultPuntoDos) {
     TriangleData a = T0_piso();
     TriangleData b = T1_oeste();
     std::vector<TriangleData> tris = {a, b};
@@ -100,15 +99,15 @@ TEST(Absorcion, TrianguloDesconocidoUsaDefaultPuntoUno) {
     std::vector<SurfaceData> surfaces = {onlySurfaceForB};
 
     SimulationConfig cfg = buildConfigS1(10);
-    auto samples = DiffuseEnergySolver::solve(diff, tris, surfaces, 1.0, cfg);
+    auto samples = DiffuseEnergySolver::solve(diff, tris, surfaces, seedEnergy(a, 1.0), cfg);
 
-    // energy[T0] en t=0 = 0.5 ; afterAbsorb(T0) usando default 0.1 = 0.45
-    double energiaT1_en_t10 = -1.0;
+    // energy[T0] en t=0 = 1.0 ; afterAbsorb(T0) usando default 0.2 = 0.8
+    double energiaT1_en_t5 = -1.0;
     for (auto& s : samples) {
-        if (s.triangleId == 1 && s.timeMs == 10) energiaT1_en_t10 = s.energy;
+        if (s.triangleId == 1 && s.timeMs == 5) energiaT1_en_t5 = s.energy;
     }
-    ASSERT_GE(energiaT1_en_t10, 0.0);
-    EXPECT_NEAR(energiaT1_en_t10, 0.45, 1e-6)
+    ASSERT_GE(energiaT1_en_t5, 0.0);
+    EXPECT_NEAR(energiaT1_en_t5, 0.8, 1e-6)
         << "Se esperaba que T0 (ausente de la lista de superficies) usara "
-           "la absorcion por defecto de 0.1, no la de la superficie de T1 (0.9)";
+           "la absorcion por defecto de 0.2, no la de la superficie de T1 (0.9)";
 }

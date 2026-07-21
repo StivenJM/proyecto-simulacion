@@ -20,8 +20,8 @@ double formFactorTeorico(const TriangleData& src, const TriangleData& dst) {
     double d = GeometryCalculator::distance(cSrc, cDst);
 
     Vec3 dir{(cDst.x - cSrc.x) / d, (cDst.y - cSrc.y) / d, (cDst.z - cSrc.z) / d};
-    double cosI = nSrc.x*dir.x + nSrc.y*dir.y + nSrc.z*dir.z;
-    double cosJ = -(nDst.x*dir.x + nDst.y*dir.y + nDst.z*dir.z);
+    double cosI = std::fabs(nSrc.x*dir.x + nSrc.y*dir.y + nSrc.z*dir.z);
+    double cosJ = std::fabs(-(nDst.x*dir.x + nDst.y*dir.y + nDst.z*dir.z));
     double aDst = GeometryCalculator::area(dst);
 
     return (cosI * cosJ * aDst) / (M_PI * d * d);
@@ -59,14 +59,11 @@ TEST(Porcentaje, NingunPorcentajeMayorAUno) {
             EXPECT_LE(diff.percentages[i][j], 1.0 + kEpsilon) << "[" << i << "][" << j << "]";
 }
 
-TEST(Porcentaje, Bug_ComportamientoActual_RepartoUniforme) {
+TEST(Porcentaje, EspecificacionCorrecta_NoUsaRepartoUniformeCuandoAnguloSolidoDifiere) {
     std::vector<TriangleData> tris = {T0_piso(), T1_oeste(), T4_sur()};
     auto diff = GeometryCalculator::buildDiffusionMatrix(tris, 340.0);
-    // indices: 0=T0, 1=T1, 2=T4
-    EXPECT_NEAR(diff.percentages[0][1], 0.5, kEpsilon)
-        << "Comportamiento actual: reparto uniforme (1/2) ignorando area y distancia";
-    EXPECT_NEAR(diff.percentages[0][2], 0.5, kEpsilon)
-        << "Comportamiento actual: reparto uniforme (1/2) ignorando area y distancia";
+    EXPECT_NE(diff.percentages[0][1], diff.percentages[0][2])
+        << "El reparto debe reflejar area, distancia y orientacion; no un conteo uniforme.";
 }
 
 TEST(Porcentaje, Bug_FormFactorTeoricoDifiereMuchoDelUniforme) {
@@ -86,7 +83,7 @@ TEST(Porcentaje, Bug_FormFactorTeoricoDifiereMuchoDelUniforme) {
     EXPECT_GT(errRelT4, 0.30) << "Error relativo > 30% para el triangulo lejano/grande";
 }
 
-TEST(Porcentaje, DISABLED_EspecificacionCorrecta_PonderadoPorAnguloSolido) {
+TEST(Porcentaje, EspecificacionCorrecta_PonderadoPorAnguloSolido) {
     // Especificacion deseada: el porcentaje debe reflejar el angulo solido
     // real (area/distancia/orientacion), no un conteo uniforme de vecinos.
     std::vector<TriangleData> tris = {T0_piso(), T1_oeste(), T4_sur()};
@@ -95,17 +92,16 @@ TEST(Porcentaje, DISABLED_EspecificacionCorrecta_PonderadoPorAnguloSolido) {
     EXPECT_NEAR(diff.percentages[0][2], 0.842105, 1e-3);
 }
 
-TEST(Porcentaje, Bug_CambioDeWindingEnUnTrianguloCorrompeOtrasFilas) {
+TEST(Porcentaje, CambioDeWindingEnUnTrianguloNoCorrompeOtrasFilas) {
     std::vector<TriangleData> conT1 = {T0_piso(), T1_oeste(), T4_sur()};
     auto diffConT1 = GeometryCalculator::buildDiffusionMatrix(conT1, 340.0);
     // indices: 0=T0, 1=T1, 2=T4  -> percentages[2][0] es T4->T0
-    EXPECT_NEAR(diffConT1.percentages[2][0], 0.5, kEpsilon);
+    double referencia = diffConT1.percentages[2][0];
 
     std::vector<TriangleData> conT3 = {T0_piso(), T3_oeste_rev(), T4_sur()};
     auto diffConT3 = GeometryCalculator::buildDiffusionMatrix(conT3, 340.0);
     // indices: 0=T0, 1=T3, 2=T4  -> percentages[2][0] es T4->T0
-    EXPECT_NEAR(diffConT3.percentages[2][0], 1.0, kEpsilon)
+    EXPECT_NEAR(diffConT3.percentages[2][0], referencia, kEpsilon)
         << "Al invertir el winding de un triangulo ajeno (T1->T3), la "
-           "distribucion de energia de T4 hacia T0 cambia de 50% a 100%, "
-           "sin que la geometria real de T4 o T0 se haya modificado.";
+           "distribucion de energia de T4 hacia T0 no debe cambiar.";
 }

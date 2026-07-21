@@ -30,16 +30,10 @@ TEST(Visibilidad, PlanosDistintos_Visible_PisoSur) {
     EXPECT_TRUE(GeometryCalculator::areVisible(T0_piso(), T4_sur()));
 }
 
-TEST(Visibilidad, Bug_PlanosParalelosNoSonMismoPlano_ComportamientoActual) {
-    // Documenta el comportamiento ACTUAL (incorrecto): el codigo dice "false".
+TEST(Visibilidad, PlanosParalelosDistintosSonVisibles) {
     bool visible = GeometryCalculator::areVisible(T0_piso(), T2_techo());
-    EXPECT_FALSE(visible)
-        << "Comportamiento actual del codigo: marca planos paralelos "
-           "distintos como NO visibles (bug).";
-}
-
-TEST(Visibilidad, DISABLED_Bug_PlanosParalelosDeberianSerVisiblesSegunEnunciado) {
-    EXPECT_TRUE(GeometryCalculator::areVisible(T0_piso(), T2_techo()));
+    EXPECT_TRUE(visible)
+        << "Solo los triangulos coplanares deben ser no visibles; planos paralelos separados siguen siendo visibles.";
 }
 
 TEST(Visibilidad, Bug_MismaGeometria_MismosPuntos) {
@@ -51,29 +45,17 @@ TEST(Visibilidad, Bug_MismaGeometria_MismosPuntos) {
     ASSERT_NEAR(GeometryCalculator::area(T1_oeste()), GeometryCalculator::area(T3_oeste_rev()), kEpsilon);
 }
 
-TEST(Visibilidad, Bug_OrdenDeVerticesCambiaElResultado) {
+TEST(Visibilidad, EspecificacionCorrecta_IndependienteDelWinding) {
     bool visibleConT1 = GeometryCalculator::areVisible(T0_piso(), T1_oeste());
     bool visibleConT3 = GeometryCalculator::areVisible(T0_piso(), T3_oeste_rev());
 
     EXPECT_TRUE(visibleConT1)
-        << "T1 (winding 'de frente') es detectado como visible";
-    EXPECT_FALSE(visibleConT3)
-        << "T3, el MISMO triangulo fisico con winding invertido, es "
-           "incorrectamente detectado como NO visible";
-
-    // La conclusion critica del bug: dos representaciones del mismo objeto
-    // fisico producen resultados de visibilidad opuestos.
-    EXPECT_NE(visibleConT1, visibleConT3)
+        << "T1 debe ser visible desde el piso";
+    EXPECT_TRUE(visibleConT3)
+        << "T3 representa el mismo triangulo fisico con winding invertido y tambien debe ser visible";
+    EXPECT_EQ(visibleConT1, visibleConT3)
         << "La visibilidad no deberia depender del orden de los vertices, "
-           "pero en este codigo lo hace.";
-}
-
-TEST(Visibilidad, DISABLED_EspecificacionCorrecta_IndependienteDelWinding) {
-    // Especificacion deseada: la visibilidad de T0 respecto del triangulo
-    // "oeste" deberia ser la MISMA sin importar el orden de sus vertices.
-    bool visibleConT1 = GeometryCalculator::areVisible(T0_piso(), T1_oeste());
-    bool visibleConT3 = GeometryCalculator::areVisible(T0_piso(), T3_oeste_rev());
-    EXPECT_EQ(visibleConT1, visibleConT3);
+            "pero en este codigo lo hace.";
 }
 
 // --- Caso limite: triangulos casi coplanares (bajo el umbral 0.99) ---------
