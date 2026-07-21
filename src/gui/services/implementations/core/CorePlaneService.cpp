@@ -12,6 +12,7 @@ bool CorePlaneService::updatePlaneAbsorption(GuiScenario& scenario, int planeId,
 void CorePlaneService::updateAllPlaneAbsorption(GuiScenario& scenario, float absorption) { fallback_.updateAllPlaneAbsorption(scenario, absorption); }
 bool CorePlaneService::updatePlaneVisibility(GuiScenario& scenario, int planeId, bool visible) { return fallback_.updatePlaneVisibility(scenario, planeId, visible); }
 bool CorePlaneService::updatePlaneColor(GuiScenario& scenario, int planeId, Vec3 color) { return fallback_.updatePlaneColor(scenario, planeId, color); }
+bool CorePlaneService::updatePlaneNormal(GuiScenario& scenario, int planeId, Vec3 normal) { return fallback_.updatePlaneNormal(scenario, planeId, normal); }
 void CorePlaneService::selectNext(const GuiScenario& scenario, GuiSelection& selection) { fallback_.selectNext(scenario, selection); }
 void CorePlaneService::moveSelected(GuiScenario& scenario, const GuiSelection& selection, Vec3 delta) { fallback_.moveSelected(scenario, selection, delta); }
 

@@ -7,6 +7,7 @@ struct GuiSimulationConfig {
     int meshSubdivisions = 5;
     float globalAbsorption = 0.2f;
     float diffusionCoefficient = 0.1f;
+    bool solidSceneFill = false;
 };
 
 }  // namespace gui

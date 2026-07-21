@@ -59,6 +59,7 @@ public:
     void updateAllPlaneAbsorption(float absorption);
     bool updateSelectedPlaneVisibility(bool visible);
     bool updateSelectedPlaneColor(Vec3 color);
+    bool updateSelectedPlaneNormal(Vec3 normal);
     void selectTriangle(int triangleId);
     bool updateSelectedSourcePosition(Vec3 position);
     bool updateSelectedSourceName(const std::string& name);
@@ -74,6 +75,8 @@ public:
     float globalAbsorption() const;
     float diffusionCoefficient() const;
     void updateDiffusionCoefficient(float diffusionCoefficient);
+    bool solidSceneFill() const;
+    void updateSolidSceneFill(bool solidSceneFill);
     const GuiPlaneDraft& draft() const;
 
 private:

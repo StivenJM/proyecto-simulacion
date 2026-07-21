@@ -20,6 +20,7 @@ struct GuiPlane {
     float width = 1.0f;
     float height = 1.0f;
     PlaneOrientation orientation = PlaneOrientation::Horizontal;
+    Vec3 normal{0.0f, 1.0f, 0.0f};
     float absorption = 0.2f;
     std::vector<Vec3> outlinePoints;
     std::string name;

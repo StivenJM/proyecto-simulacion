@@ -36,6 +36,7 @@ private:
     void processInput(bool imguiWantsKeyboard);
     void toggleMode();
     void startSimulation();
+    Vec3 simulationCameraPosition() const;
     Mat4 simulationViewProjection() const;
     void updateWindowTitle();
 

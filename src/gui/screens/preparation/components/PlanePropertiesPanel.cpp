@@ -60,6 +60,12 @@ void PlanePropertiesPanel::render(PreparationScreen& screen)
         screen.updateSelectedPlaneColor({color[0], color[1], color[2]});
     }
 
+    float normal[3] = {plane->normal.x, plane->normal.y, plane->normal.z};
+    if (ImGui::InputFloat3("Normal", normal)) {
+        screen.updateSelectedPlaneNormal({normal[0], normal[1], normal[2]});
+    }
+    ImGui::TextDisabled("Used by solid cube visualization to hide the face pointing toward the camera.");
+
     ImGui::Text("Area: %.2f m2", plane->area);
 
     if (ImGui::CollapsingHeader("Points")) {

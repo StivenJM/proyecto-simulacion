@@ -136,15 +136,20 @@ void CameraController::update(GLFWwindow* window, float deltaTime)
     distance_ = std::clamp(distance_, 2.5f, 14.0f);
 }
 
-Mat4 CameraController::viewProjectionMatrix() const
+Vec3 CameraController::position() const
 {
     const float yaw = radians(yaw_);
     const float pitch = radians(pitch_);
-    const Vec3 eye{
+    return {
         target_.x + distance_ * std::cos(pitch) * std::sin(yaw),
         target_.y + distance_ * std::sin(pitch),
         target_.z + distance_ * std::cos(pitch) * std::cos(yaw),
     };
+}
+
+Mat4 CameraController::viewProjectionMatrix() const
+{
+    const Vec3 eye = position();
 
     const float aspect = static_cast<float>(viewportWidth_) / static_cast<float>(viewportHeight_);
     return multiply(perspective(radians(45.0f), aspect, 0.1f, 100.0f), lookAt(eye, target_, {0.0f, 1.0f, 0.0f}));
