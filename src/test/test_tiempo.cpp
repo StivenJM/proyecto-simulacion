@@ -1,9 +1,8 @@
 #include <gtest/gtest.h>
-#include "services/implementations/core/GeometryCalculator.h"
+#include "core/GeometryCalculator.h"
 #include "test_utils.h"
 
-using namespace services;
-using namespace services::core;
+using namespace core;
 using namespace test_utils;
 
 // --- Caso exacto: sin resto, no hay ambiguedad entre truncar/redondear -----

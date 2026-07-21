@@ -1,11 +1,10 @@
 #include <gtest/gtest.h>
-#include "services/implementations/core/CoreSimulationService.h"
-#include "services/implementations/core/DiffuseEnergySolver.h"
-#include "services/implementations/core/GeometryCalculator.h"
+#include "core/CoreSimulationService.h"
+#include "core/DiffuseEnergySolver.h"
+#include "core/GeometryCalculator.h"
 #include "test_utils.h"
 
-using namespace services;
-using namespace services::core;
+using namespace core;
 using namespace test_utils;
 
 // --- El valor por defecto del struct SI respeta el limite (1000 ms = 1 s) --

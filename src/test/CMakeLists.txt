@@ -25,7 +25,7 @@ FetchContent_MakeAvailable(googletest)
 # junto a config/ y services/, tal como los #include originales lo exigen
 # (ej. "config/AppConfig.h", "services/ISimulationService.h").
 # ------------------------------------------------------------------------
-set(PROJECT_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/..)
+set(PROJECT_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 
 add_executable(ambiente3d_tests
   test_centroides.cpp
@@ -39,15 +39,17 @@ add_executable(ambiente3d_tests
   test_integracion.cpp
   test_utils.cpp
 
-  ${PROJECT_ROOT}/services/implementations/core/GeometryCalculator.cpp
-  ${PROJECT_ROOT}/services/implementations/core/RayTracer.cpp
-  ${PROJECT_ROOT}/services/implementations/core/DiffuseEnergySolver.cpp
-  ${PROJECT_ROOT}/services/implementations/core/CoreSimulationService.cpp
+  ${PROJECT_ROOT}/src/core/GeometryCalculator.cpp
+  ${PROJECT_ROOT}/src/core/RayTracer.cpp
+  ${PROJECT_ROOT}/src/core/DiffuseEnergySolver.cpp
+  ${PROJECT_ROOT}/src/core/CoreSimulationService.cpp
 )
 
 target_include_directories(ambiente3d_tests PRIVATE
-  ${PROJECT_ROOT}
-  ${CMAKE_CURRENT_SOURCE_DIR}
+    ${PROJECT_ROOT}
+    ${PROJECT_ROOT}/src
+    ${PROJECT_ROOT}/src/core
+    ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 target_link_libraries(ambiente3d_tests PRIVATE gtest gtest_main)

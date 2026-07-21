@@ -1,14 +1,13 @@
 #include <gtest/gtest.h>
 #include <cmath>
-#include "services/implementations/core/GeometryCalculator.h"
+#include "core/GeometryCalculator.h"
 #include "test_utils.h"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
 
-using namespace services;
-using namespace services::core;
+using namespace core;
 using namespace test_utils;
 
 namespace {
