@@ -138,6 +138,11 @@ double absorptionForPlane(const std::unordered_map<int, double>& lookup, int pla
     return it != lookup.end() ? it->second : 0.2;
 }
 
+float millisecondsToSeconds(int timeMs)
+{
+    return std::max(0.0f, static_cast<float>(timeMs) / 1000.0f);
+}
+
 }  // namespace
 
 SimulationResultDto toGuiResult(const core::SimulationResult& result, const GuiScenario& scenario)
@@ -189,7 +194,14 @@ SimulationResultDto toGuiResult(const core::SimulationResult& result, const GuiS
         mapped.overlay.triangleEnergy.push_back({planeId, sample.triangleId, clamp01(static_cast<float>(sample.energy) / maxEnergy)});
     }
 
+    struct AbsorbedTriangleEvent {
+        std::size_t triangleIndex = 0;
+        int timeMs = 0;
+        double energy = 0.0;
+    };
+
     std::vector<double> absorbedEnergyByTriangle(result.diffusionTriangles.size(), 0.0);
+    std::vector<AbsorbedTriangleEvent> absorbedEnergyEvents;
     for (const core::ReflectionRaySegment& segment : result.reflectionRays) {
         const int triangleIndex = findHitTriangleIndex(segment.to, result.diffusionTriangles);
         if (triangleIndex < 0) {
@@ -197,15 +209,23 @@ SimulationResultDto toGuiResult(const core::SimulationResult& result, const GuiS
         }
 
         const core::TriangleData& triangle = result.diffusionTriangles[static_cast<std::size_t>(triangleIndex)];
-        absorbedEnergyByTriangle[static_cast<std::size_t>(triangleIndex)] += segment.energy * absorptionForPlane(planeAbsorptionLookup, triangle.surfaceId);
+        const double absorbedEnergy = segment.energy * absorptionForPlane(planeAbsorptionLookup, triangle.surfaceId);
+        if (absorbedEnergy > 0.0 && std::isfinite(absorbedEnergy)) {
+            absorbedEnergyByTriangle[static_cast<std::size_t>(triangleIndex)] += absorbedEnergy;
+            absorbedEnergyEvents.push_back({static_cast<std::size_t>(triangleIndex), segment.timeMs, absorbedEnergy});
+        }
     }
 
     const std::size_t diffuseTriangleCount = std::min(result.diffusionTriangles.size(), result.diffuseEnergyByTriangleTime.size());
     for (std::size_t triangleIndex = 0; triangleIndex < diffuseTriangleCount; ++triangleIndex) {
         const double absorption = absorptionForPlane(planeAbsorptionLookup, result.diffusionTriangles[triangleIndex].surfaceId);
-        for (double incomingEnergy : result.diffuseEnergyByTriangleTime[triangleIndex]) {
-            if (std::isfinite(incomingEnergy)) {
-                absorbedEnergyByTriangle[triangleIndex] += incomingEnergy * absorption;
+        for (std::size_t timeIndex = 0; timeIndex < result.diffuseEnergyByTriangleTime[triangleIndex].size(); ++timeIndex) {
+            const double incomingEnergy = result.diffuseEnergyByTriangleTime[triangleIndex][timeIndex];
+            const double absorbedEnergy = incomingEnergy * absorption;
+            if (std::isfinite(absorbedEnergy) && absorbedEnergy > 0.0) {
+                absorbedEnergyByTriangle[triangleIndex] += absorbedEnergy;
+                const int timeMs = static_cast<int>(timeIndex) * std::max(1, result.diffuseEnergyTimeStepMs);
+                absorbedEnergyEvents.push_back({triangleIndex, timeMs, absorbedEnergy});
             }
         }
     }
@@ -217,13 +237,17 @@ SimulationResultDto toGuiResult(const core::SimulationResult& result, const GuiS
 
     if (!mapped.diffusion.triangles.empty() && !absorbedEnergyByTriangle.empty()) {
         mapped.overlay.triangleEnergy.clear();
-        const std::size_t triangleCount = std::min(mapped.diffusion.triangles.size(), absorbedEnergyByTriangle.size());
-        for (std::size_t triangleIndex = 0; triangleIndex < triangleCount; ++triangleIndex) {
-            const DiffusionTriangleDto& triangle = mapped.diffusion.triangles[triangleIndex];
+        for (const AbsorbedTriangleEvent& event : absorbedEnergyEvents) {
+            if (event.triangleIndex >= mapped.diffusion.triangles.size()) {
+                continue;
+            }
+
+            const DiffusionTriangleDto& triangle = mapped.diffusion.triangles[event.triangleIndex];
             mapped.overlay.triangleEnergy.push_back({
                 triangle.planeId,
                 triangle.triangleId,
-                clamp01(static_cast<float>(absorbedEnergyByTriangle[triangleIndex] / maxAbsorbedEnergy)),
+                clamp01(static_cast<float>(event.energy / maxAbsorbedEnergy)),
+                millisecondsToSeconds(event.timeMs),
                 triangle.vertices,
                 true
             });

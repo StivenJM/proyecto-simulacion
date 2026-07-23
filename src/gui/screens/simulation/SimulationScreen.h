@@ -49,6 +49,7 @@ public:
 
 private:
     void recomputeOverlay();
+    void recomputeTriangleEnergy(float progress);
     void recomputeRays(float progress);
 
     ISimulationService& simulationService_;

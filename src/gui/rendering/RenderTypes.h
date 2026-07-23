@@ -33,6 +33,7 @@ struct RenderTriangleEnergy {
     int planeId = 0;
     int triangleId = 0;
     float energy = 0.0f;
+    float timeSeconds = 0.0f;
     std::array<Vec3, 3> vertices{};
     bool hasGeometry = false;
 };
