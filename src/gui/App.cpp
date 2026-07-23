@@ -201,6 +201,7 @@ void App::toggleMode()
 {
     if (mode_ == AppMode::Preparation) {
         mode_ = AppMode::Simulation;
+        simulationScreen_.beginPrecompute(scenario_);
     } else {
         mode_ = AppMode::Preparation;
         simulationScreen_.reset();
@@ -266,6 +267,8 @@ void App::updateWindowTitle()
         } else {
             title += "Preparation Mode [Plane " + std::to_string(preparationScreen_.selectedPlaneId()) + "] [Tab: Simulation]";
         }
+    } else if (!simulationScreen_.isPrecomputeReady()) {
+        title += "Simulation Mode - Preparing [Tab: Preparation]";
     } else if (simulationScreen_.isFinished()) {
         title += "Simulation Mode - Finished [Enter: Restart] [Tab: Preparation]";
     } else if (simulationScreen_.isRunning()) {

@@ -5,6 +5,9 @@
 #include "gui/services/ISimulationService.h"
 #include "gui/services/dtos/SimulationDtos.h"
 
+#include <chrono>
+#include <cstdint>
+#include <future>
 #include <string>
 #include <vector>
 
@@ -21,6 +24,13 @@ enum class SimulationViewMode {
     Internal,
 };
 
+enum class SimulationPrecomputeState {
+    Idle,
+    Computing,
+    Ready,
+    Failed,
+};
+
 struct SimulatedPlaneEnergy {
     int planeId = 0;
     std::string planeName;
@@ -31,11 +41,13 @@ class SimulationScreen {
 public:
     explicit SimulationScreen(ISimulationService& simulationService);
 
+    void beginPrecompute(const GuiScenario& scenario);
     bool start(const GuiScenario& scenario);
     bool restart(const GuiScenario& scenario);
     void update(float deltaTime, const GuiScenario& scenario);
     bool renderPanel(const GuiScenario& scenario);
     void reset();
+    bool isPrecomputeReady() const;
     bool isStarted() const;
     bool isRunning() const;
     bool isFinished() const;
@@ -48,14 +60,19 @@ public:
     int activeRayCount() const;
 
 private:
+    void launchPrecompute(GuiScenario scenario, std::uint64_t generation);
+    void pollPrecompute();
+    void applySimulationResult(const SimulationResultDto& result);
     void recomputeOverlay();
     void recomputeTriangleEnergy(float progress);
     void recomputeRays(float progress);
 
     ISimulationService& simulationService_;
     SimulationRunState state_ = SimulationRunState::Ready;
+    SimulationPrecomputeState precomputeState_ = SimulationPrecomputeState::Idle;
     SimulationViewMode viewMode_ = SimulationViewMode::External;
     float elapsedSeconds_ = 0.0f;
+    float precomputeElapsedSeconds_ = 0.0f;
     float simulationSpeedMultiplier_ = 1.0f;
     bool editingSimulationSpeed_ = false;
     bool focusSimulationSpeedInput_ = false;
@@ -67,6 +84,13 @@ private:
     RenderSimulationOverlay resultOverlay_;
     std::string statusMessage_;
     int configuredRayCount_ = 0;
+    std::future<SimulationResultDto> precomputeFuture_;
+    SimulationResultDto precomputedResult_;
+    GuiScenario pendingPrecomputeScenario_;
+    std::chrono::steady_clock::time_point precomputeStartTime_{};
+    std::uint64_t precomputeGeneration_ = 0;
+    std::uint64_t futureGeneration_ = 0;
+    bool precomputeLaunchPending_ = false;
 };
 
 }  // namespace gui
