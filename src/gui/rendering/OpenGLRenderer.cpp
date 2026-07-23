@@ -259,13 +259,14 @@ void OpenGLRenderer::render(const Mat4& viewProjectionMatrix, const RenderScene&
 
     glDepthFunc(GL_LEQUAL);
     drawLineVertices(lineVertexArray_, lineVertexBuffer_, scene.lineVertices);
-    glDepthFunc(GL_LESS);
 
     if (!scene.alwaysVisibleLineVertices.empty()) {
-        glDisable(GL_DEPTH_TEST);
+        glDepthRange(0.0, 0.999);
         drawLineVertices(lineVertexArray_, lineVertexBuffer_, scene.alwaysVisibleLineVertices);
-        glEnable(GL_DEPTH_TEST);
+        glDepthRange(0.0, 1.0);
     }
+
+    glDepthFunc(GL_LESS);
 
     glBindVertexArray(0);
 }
