@@ -3,8 +3,10 @@
 #include <imgui.h>
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdio>
+#include <future>
 #include <numeric>
 #include <unordered_map>
 
@@ -67,6 +69,19 @@ const char* stateLabel(SimulationRunState state)
     return "Ready";
 }
 
+const char* precomputeLabel(SimulationPrecomputeState state)
+{
+    if (state == SimulationPrecomputeState::Ready) return "READY";
+    if (state == SimulationPrecomputeState::Failed) return "FAILED";
+    return "WAIT";
+}
+
+ImVec4 precomputeColor(SimulationPrecomputeState state)
+{
+    if (state == SimulationPrecomputeState::Ready) return ImVec4(0.12f, 0.55f, 0.22f, 1.0f);
+    return ImVec4(0.72f, 0.16f, 0.12f, 1.0f);
+}
+
 float sanitizeSimulationSpeed(float value)
 {
     if (!std::isfinite(value)) {
@@ -85,34 +100,29 @@ SimulationScreen::SimulationScreen(ISimulationService& simulationService)
 
 bool SimulationScreen::start(const GuiScenario& scenario)
 {
-    if (state_ == SimulationRunState::Running) {
+    (void)scenario;
+    pollPrecompute();
+    if (precomputeState_ != SimulationPrecomputeState::Ready) {
         return false;
     }
 
     elapsedSeconds_ = 0.0f;
-    const SimulationResultDto result = simulationService_.start(scenario);
-    planeEnergy_.clear();
-    planeEnergy_.reserve(result.planeEnergy.size());
-    for (const SimulationPlaneEnergyDto& sample : result.planeEnergy) {
-        planeEnergy_.push_back({sample.planeId, sample.planeName, sample.energy});
-    }
-    rays_ = result.rays;
-    resultOverlay_ = result.overlay;
-    statusMessage_ = result.message;
-    configuredRayCount_ = result.configuredRayCount;
-    state_ = result.success ? SimulationRunState::Running : SimulationRunState::Ready;
+    applySimulationResult(precomputedResult_);
+    state_ = precomputedResult_.success ? SimulationRunState::Running : SimulationRunState::Ready;
     recomputeOverlay();
-    return result.success;
+    return precomputedResult_.success;
 }
 
 bool SimulationScreen::restart(const GuiScenario& scenario)
 {
-    reset();
     return start(scenario);
 }
 
 void SimulationScreen::update(float deltaTime, const GuiScenario& scenario)
 {
+    (void)scenario;
+    pollPrecompute();
+
     if (state_ != SimulationRunState::Running) {
         return;
     }
@@ -131,6 +141,17 @@ bool SimulationScreen::renderPanel(const GuiScenario& scenario)
 
     ImGui::Begin("Simulation");
     ImGui::Text("Status: %s", stateLabel(state_));
+    pollPrecompute();
+    const ImVec4 statusColor = precomputeColor(precomputeState_);
+    ImGui::PushStyleColor(ImGuiCol_Button, statusColor);
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, statusColor);
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, statusColor);
+    ImGui::BeginDisabled(true);
+    ImGui::Button(precomputeLabel(precomputeState_), ImVec2(72.0f, 0.0f));
+    ImGui::EndDisabled();
+    ImGui::PopStyleColor(3);
+    ImGui::SameLine();
+    ImGui::Text("%.2f s", precomputeElapsedSeconds_);
     if (!statusMessage_.empty()) {
         if (state_ == SimulationRunState::Ready) {
             ImGui::TextColored(ImVec4(1.0f, 0.35f, 0.25f, 1.0f), "%s", statusMessage_.c_str());
@@ -170,9 +191,12 @@ bool SimulationScreen::renderPanel(const GuiScenario& scenario)
             simulationStarted = restart(scenario);
         }
     } else {
+        const bool canStart = precomputeState_ == SimulationPrecomputeState::Ready;
+        ImGui::BeginDisabled(!canStart);
         if (ImGui::Button(state_ == SimulationRunState::Finished ? "Restart" : "Start")) {
             simulationStarted = restart(scenario);
         }
+        ImGui::EndDisabled();
     }
 
     ImGui::Separator();
@@ -222,6 +246,13 @@ bool SimulationScreen::renderPanel(const GuiScenario& scenario)
 
 void SimulationScreen::reset()
 {
+    ++precomputeGeneration_;
+    pollPrecompute();
+    precomputeState_ = SimulationPrecomputeState::Idle;
+    precomputeLaunchPending_ = false;
+    precomputeElapsedSeconds_ = 0.0f;
+    precomputedResult_ = {};
+    pendingPrecomputeScenario_ = {};
     state_ = SimulationRunState::Ready;
     elapsedSeconds_ = 0.0f;
     planeEnergy_.clear();
@@ -230,6 +261,41 @@ void SimulationScreen::reset()
     resultOverlay_ = {};
     statusMessage_.clear();
     configuredRayCount_ = 0;
+}
+
+void SimulationScreen::beginPrecompute(const GuiScenario& scenario)
+{
+    ++precomputeGeneration_;
+    state_ = SimulationRunState::Ready;
+    elapsedSeconds_ = 0.0f;
+    planeEnergy_.clear();
+    rays_.clear();
+    overlay_ = {};
+    resultOverlay_ = {};
+    statusMessage_ = "Preparing simulation data...";
+    configuredRayCount_ = 0;
+    precomputedResult_ = {};
+
+    if (precomputeFuture_.valid() && precomputeFuture_.wait_for(std::chrono::seconds(0)) != std::future_status::ready) {
+        pendingPrecomputeScenario_ = scenario;
+        precomputeLaunchPending_ = true;
+        precomputeState_ = SimulationPrecomputeState::Computing;
+        precomputeElapsedSeconds_ = 0.0f;
+        precomputeStartTime_ = std::chrono::steady_clock::now();
+        return;
+    }
+
+    if (precomputeFuture_.valid()) {
+        precomputeFuture_.get();
+    }
+
+    precomputeLaunchPending_ = false;
+    launchPrecompute(scenario, precomputeGeneration_);
+}
+
+bool SimulationScreen::isPrecomputeReady() const
+{
+    return precomputeState_ == SimulationPrecomputeState::Ready;
 }
 
 bool SimulationScreen::isStarted() const
@@ -282,6 +348,58 @@ int SimulationScreen::activeRayCount() const
     return static_cast<int>(std::count_if(rays_.begin(), rays_.end(), [](const GuiSimulationRay& ray) {
         return ray.visible && ray.alive;
     }));
+}
+
+void SimulationScreen::launchPrecompute(GuiScenario scenario, std::uint64_t generation)
+{
+    futureGeneration_ = generation;
+    precomputeState_ = SimulationPrecomputeState::Computing;
+    precomputeElapsedSeconds_ = 0.0f;
+    precomputeStartTime_ = std::chrono::steady_clock::now();
+    precomputeFuture_ = std::async(std::launch::async, [this, scenario = std::move(scenario)]() {
+        return simulationService_.start(scenario);
+    });
+}
+
+void SimulationScreen::pollPrecompute()
+{
+    if (precomputeState_ == SimulationPrecomputeState::Computing) {
+        precomputeElapsedSeconds_ = std::chrono::duration<float>(std::chrono::steady_clock::now() - precomputeStartTime_).count();
+    }
+
+    if (!precomputeFuture_.valid() || precomputeFuture_.wait_for(std::chrono::seconds(0)) != std::future_status::ready) {
+        return;
+    }
+
+    SimulationResultDto result = precomputeFuture_.get();
+    if (precomputeLaunchPending_) {
+        precomputeLaunchPending_ = false;
+        launchPrecompute(pendingPrecomputeScenario_, precomputeGeneration_);
+        pendingPrecomputeScenario_ = {};
+        return;
+    }
+
+    if (futureGeneration_ != precomputeGeneration_) {
+        return;
+    }
+
+    precomputedResult_ = std::move(result);
+    statusMessage_ = precomputedResult_.message;
+    configuredRayCount_ = precomputedResult_.configuredRayCount;
+    precomputeState_ = precomputedResult_.success ? SimulationPrecomputeState::Ready : SimulationPrecomputeState::Failed;
+}
+
+void SimulationScreen::applySimulationResult(const SimulationResultDto& result)
+{
+    planeEnergy_.clear();
+    planeEnergy_.reserve(result.planeEnergy.size());
+    for (const SimulationPlaneEnergyDto& sample : result.planeEnergy) {
+        planeEnergy_.push_back({sample.planeId, sample.planeName, sample.energy});
+    }
+    rays_ = result.rays;
+    resultOverlay_ = result.overlay;
+    statusMessage_ = result.message;
+    configuredRayCount_ = result.configuredRayCount;
 }
 
 void SimulationScreen::recomputeOverlay()
