@@ -221,10 +221,10 @@ bool OpenGLRenderer::initialize()
 
 void OpenGLRenderer::render(const Mat4& viewProjectionMatrix, const RenderScene& scene, AppMode mode, bool simulationStarted)
 {
+    (void)simulationStarted;
+
     if (mode == AppMode::Preparation) {
         glClearColor(0.055f, 0.075f, 0.11f, 1.0f);
-    } else if (simulationStarted) {
-        glClearColor(0.12f, 0.075f, 0.035f, 1.0f);
     } else {
         glClearColor(0.09f, 0.06f, 0.10f, 1.0f);
     }

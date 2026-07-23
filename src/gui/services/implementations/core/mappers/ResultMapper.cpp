@@ -237,6 +237,17 @@ SimulationResultDto toGuiResult(const core::SimulationResult& result, const GuiS
 
     if (!mapped.diffusion.triangles.empty() && !absorbedEnergyByTriangle.empty()) {
         mapped.overlay.triangleEnergy.clear();
+        for (const DiffusionTriangleDto& triangle : mapped.diffusion.triangles) {
+            mapped.overlay.triangleEnergy.push_back({
+                triangle.planeId,
+                triangle.triangleId,
+                0.0f,
+                0.0f,
+                triangle.vertices,
+                true
+            });
+        }
+
         for (const AbsorbedTriangleEvent& event : absorbedEnergyEvents) {
             if (event.triangleIndex >= mapped.diffusion.triangles.size()) {
                 continue;
