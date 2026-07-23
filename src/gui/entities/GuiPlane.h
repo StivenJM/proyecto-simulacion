@@ -2,6 +2,7 @@
 
 #include "GuiTriangle.h"
 #include "gui/input/CameraController.h"
+#include "gui/math/HeatMapColor.h"
 
 #include <string>
 #include <vector>
@@ -25,7 +26,7 @@ struct GuiPlane {
     std::vector<Vec3> outlinePoints;
     std::string name;
     bool visible = true;
-    Vec3 color{0.72f, 0.78f, 0.86f};
+    Vec3 color{heatMapColorVec3(0.0)};
     float area = 1.0f;
     std::vector<GuiTriangle> triangles;
 };

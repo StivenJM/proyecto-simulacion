@@ -55,9 +55,15 @@ void PlanePropertiesPanel::render(PreparationScreen& screen)
         screen.updateSelectedPlaneVisibility(visible);
     }
 
+    const bool colorEditingEnabled = !screen.solidSceneFill();
     float color[3] = {plane->color.x, plane->color.y, plane->color.z};
+    ImGui::BeginDisabled(!colorEditingEnabled);
     if (ImGui::ColorEdit3("Color", color)) {
         screen.updateSelectedPlaneColor({color[0], color[1], color[2]});
+    }
+    ImGui::EndDisabled();
+    if (!colorEditingEnabled) {
+        ImGui::TextDisabled("Disable solid cube visualization to edit plane colors.");
     }
 
     float normal[3] = {plane->normal.x, plane->normal.y, plane->normal.z};
