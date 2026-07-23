@@ -20,6 +20,16 @@ Vec3 subtract(Vec3 a, Vec3 b)
     return {a.x - b.x, a.y - b.y, a.z - b.z};
 }
 
+Vec3 add(Vec3 a, Vec3 b)
+{
+    return {a.x + b.x, a.y + b.y, a.z + b.z};
+}
+
+Vec3 scale(Vec3 value, float factor)
+{
+    return {value.x * factor, value.y * factor, value.z * factor};
+}
+
 Vec3 cross(Vec3 a, Vec3 b)
 {
     return {
@@ -108,57 +118,147 @@ void CameraController::setViewport(int width, int height)
     viewportHeight_ = std::max(height, 1);
 }
 
-void CameraController::update(GLFWwindow* window, float deltaTime)
+void CameraController::update(GLFWwindow* window, float deltaTime, bool mouseLookEnabled)
 {
-    const float orbitSpeed = 70.0f * deltaTime;
-    const float zoomSpeed = 4.0f * deltaTime;
+    if (window == nullptr) {
+        return;
+    }
 
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
-        yaw_ -= orbitSpeed;
+    if (!mouseLookEnabled) {
+        resetMouseLook();
+        const float orbitSpeed = 70.0f * std::max(deltaTime, 0.0f);
+        float yawDelta = 0.0f;
+        float pitchDelta = 0.0f;
+        if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
+            yawDelta -= orbitSpeed;
+        }
+        if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
+            yawDelta += orbitSpeed;
+        }
+        if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
+            pitchDelta += orbitSpeed;
+        }
+        if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
+            pitchDelta -= orbitSpeed;
+        }
+
+        if (yawDelta == 0.0f && pitchDelta == 0.0f) {
+            return;
+        }
+
+        const Vec3 target{0.0f, 0.0f, 0.0f};
+        const Vec3 offset = subtract(position_, target);
+        const float distance = std::max(std::sqrt(dot(offset, offset)), 0.001f);
+        float orbitYaw = std::atan2(offset.x, offset.z) * 180.0f / pi + yawDelta;
+        float orbitPitch = std::asin(std::clamp(offset.y / distance, -1.0f, 1.0f)) * 180.0f / pi + pitchDelta;
+        orbitPitch = std::clamp(orbitPitch, -80.0f, 80.0f);
+
+        const float yaw = radians(orbitYaw);
+        const float pitch = radians(orbitPitch);
+        position_ = {
+            target.x + distance * std::cos(pitch) * std::sin(yaw),
+            target.y + distance * std::sin(pitch),
+            target.z + distance * std::cos(pitch) * std::cos(yaw),
+        };
+        front_ = normalize(subtract(target, position_));
+        updateAnglesFromFront();
+        return;
     }
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
-        yaw_ += orbitSpeed;
+
+    const float cameraSpeed = moveSpeed_ * std::max(deltaTime, 0.0f);
+    const Vec3 right = normalize(cross(front_, up_));
+
+    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
+        position_ = add(position_, scale(front_, cameraSpeed));
     }
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
-        pitch_ += orbitSpeed;
+    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
+        position_ = subtract(position_, scale(front_, cameraSpeed));
     }
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS || glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
-        pitch_ -= orbitSpeed;
+    if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
+        position_ = subtract(position_, scale(right, cameraSpeed));
+    }
+    if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
+        position_ = add(position_, scale(right, cameraSpeed));
     }
     if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
-        distance_ += zoomSpeed;
+        position_ = add(position_, scale(up_, cameraSpeed));
     }
     if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
-        distance_ -= zoomSpeed;
+        position_ = subtract(position_, scale(up_, cameraSpeed));
     }
 
-    pitch_ = std::clamp(pitch_, -80.0f, 80.0f);
-    distance_ = std::clamp(distance_, 2.5f, 14.0f);
+    double mouseX = 0.0;
+    double mouseY = 0.0;
+    glfwGetCursorPos(window, &mouseX, &mouseY);
+    if (!mouseLookActive_ || firstMouseSample_) {
+        lastMouseX_ = mouseX;
+        lastMouseY_ = mouseY;
+        mouseLookActive_ = true;
+        firstMouseSample_ = false;
+        return;
+    }
+
+    const float xOffset = static_cast<float>(mouseX - lastMouseX_) * mouseSensitivity_;
+    const float yOffset = static_cast<float>(lastMouseY_ - mouseY) * mouseSensitivity_;
+    lastMouseX_ = mouseX;
+    lastMouseY_ = mouseY;
+
+    yaw_ += xOffset;
+    pitch_ = std::clamp(pitch_ + yOffset, -89.0f, 89.0f);
+    updateFrontFromAngles();
+}
+
+void CameraController::resetMouseLook()
+{
+    mouseLookActive_ = false;
+    firstMouseSample_ = true;
 }
 
 Vec3 CameraController::position() const
 {
-    const float yaw = radians(yaw_);
-    const float pitch = radians(pitch_);
-    return {
-        target_.x + distance_ * std::cos(pitch) * std::sin(yaw),
-        target_.y + distance_ * std::sin(pitch),
-        target_.z + distance_ * std::cos(pitch) * std::cos(yaw),
-    };
+    return position_;
 }
 
 Mat4 CameraController::viewProjectionMatrix() const
 {
-    const Vec3 eye = position();
-
     const float aspect = static_cast<float>(viewportWidth_) / static_cast<float>(viewportHeight_);
-    return multiply(perspective(radians(45.0f), aspect, 0.1f, 100.0f), lookAt(eye, target_, {0.0f, 1.0f, 0.0f}));
+    return multiply(perspective(radians(fovDegrees_), aspect, 0.1f, 100.0f), lookAt(position_, add(position_, front_), up_));
 }
 
 Mat4 CameraController::viewProjectionFrom(Vec3 eye, Vec3 target, float fovDegrees) const
 {
     const float aspect = static_cast<float>(viewportWidth_) / static_cast<float>(viewportHeight_);
     return multiply(perspective(radians(fovDegrees), aspect, 0.05f, 100.0f), lookAt(eye, target, {0.0f, 1.0f, 0.0f}));
+}
+
+void CameraController::setPose(Vec3 position, Vec3 target)
+{
+    position_ = position;
+    front_ = normalize(subtract(target, position));
+    if (dot(front_, front_) <= 0.0001f) {
+        front_ = {0.0f, 0.0f, -1.0f};
+    }
+    updateAnglesFromFront();
+    firstMouseSample_ = true;
+}
+
+void CameraController::updateFrontFromAngles()
+{
+    const float yaw = radians(yaw_);
+    const float pitch = radians(pitch_);
+    front_ = normalize({
+        std::cos(yaw) * std::cos(pitch),
+        std::sin(pitch),
+        std::sin(yaw) * std::cos(pitch),
+    });
+}
+
+void CameraController::updateAnglesFromFront()
+{
+    const Vec3 normalizedFront = normalize(front_);
+    pitch_ = std::asin(std::clamp(normalizedFront.y, -1.0f, 1.0f)) * 180.0f / pi;
+    yaw_ = std::atan2(normalizedFront.z, normalizedFront.x) * 180.0f / pi;
+    pitch_ = std::clamp(pitch_, -89.0f, 89.0f);
 }
 
 }  // namespace gui
