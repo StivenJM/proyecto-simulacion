@@ -18,6 +18,11 @@ struct GLFWwindow;
 
 namespace gui {
 
+enum class InteractionMode {
+    Ui,
+    Camera,
+};
+
 class App {
 public:
     App();
@@ -35,7 +40,12 @@ private:
     void resize(int width, int height);
     bool processInput(bool imguiWantsKeyboard);
     void toggleMode();
+    void toggleInteractionMode();
+    void setInteractionMode(InteractionMode mode);
+    void renderInteractionModeHud();
+    void renderCommandsModal();
     bool startSimulation();
+    void syncSimulationCameraViewMode();
     Vec3 simulationCameraPosition() const;
     Mat4 simulationViewProjection() const;
     void updateWindowTitle();
@@ -54,6 +64,9 @@ private:
     SceneHierarchyPanel sceneHierarchyPanel_;
     PlaneEditorPanel planeEditorPanel_;
     AppMode mode_ = AppMode::Preparation;
+    SimulationViewMode lastSimulationViewMode_ = SimulationViewMode::External;
+    InteractionMode interactionMode_ = InteractionMode::Ui;
+    bool showCommandsModal_ = false;
 };
 
 }  // namespace gui
