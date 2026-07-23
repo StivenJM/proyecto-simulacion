@@ -6,6 +6,7 @@
 #include <cmath>
 #include <cstdio>
 #include <numeric>
+#include <unordered_map>
 
 namespace gui {
 namespace {
@@ -290,7 +291,46 @@ void SimulationScreen::recomputeOverlay()
     overlay_.showDiffuseEnergy = showDiffuseEnergyOnPlanes_;
     overlay_.showRayTracing = showRayTracing_;
 
-    recomputeRays(progress());
+    const float progressValue = progress();
+    recomputeTriangleEnergy(progressValue);
+    recomputeRays(progressValue);
+}
+
+void SimulationScreen::recomputeTriangleEnergy(float progressValue)
+{
+    if (!showDiffuseEnergyOnPlanes_ || state_ == SimulationRunState::Ready) {
+        overlay_.triangleEnergy.clear();
+        return;
+    }
+
+    const float currentTime = clamp01(progressValue) * maxSimulationSeconds;
+    struct AccumulatedTriangleEnergy {
+        RenderTriangleEnergy sample;
+        float energy = 0.0f;
+    };
+
+    std::unordered_map<long long, AccumulatedTriangleEnergy> accumulatedByTriangle;
+    accumulatedByTriangle.reserve(resultOverlay_.triangleEnergy.size());
+    for (const RenderTriangleEnergy& sample : resultOverlay_.triangleEnergy) {
+        if (sample.timeSeconds > currentTime) {
+            continue;
+        }
+
+        const long long key = (static_cast<long long>(sample.planeId) << 32) ^ static_cast<unsigned int>(sample.triangleId);
+        auto& accumulated = accumulatedByTriangle[key];
+        if (accumulated.energy <= 0.0f) {
+            accumulated.sample = sample;
+        }
+        accumulated.energy += sample.energy;
+    }
+
+    overlay_.triangleEnergy.clear();
+    overlay_.triangleEnergy.reserve(accumulatedByTriangle.size());
+    for (auto& entry : accumulatedByTriangle) {
+        entry.second.sample.energy = clamp01(entry.second.energy);
+        entry.second.sample.timeSeconds = currentTime;
+        overlay_.triangleEnergy.push_back(entry.second.sample);
+    }
 }
 
 void SimulationScreen::recomputeRays(float progressValue)

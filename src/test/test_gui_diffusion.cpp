@@ -94,15 +94,18 @@ TEST(GuiDiffusion, ResultDtoExponeTriangulosCoreParaHeatmap) {
     scenario.planes[0].absorption = 0.5f;
     const SimulationResultDto dto = gui::coremappers::toGuiResult(coreResult, scenario);
 
-    ASSERT_EQ(dto.overlay.triangleEnergy.size(), 2u);
+    ASSERT_EQ(dto.overlay.triangleEnergy.size(), 5u);
     EXPECT_TRUE(dto.overlay.triangleEnergy[0].hasGeometry);
     EXPECT_EQ(dto.overlay.triangleEnergy[0].planeId, 7);
     EXPECT_EQ(dto.overlay.triangleEnergy[0].triangleId, 10);
-    EXPECT_NEAR(dto.overlay.triangleEnergy[0].energy, 1.0f, 1e-6f);
+    EXPECT_NEAR(dto.overlay.triangleEnergy[0].energy, 0.625f, 1e-6f);
+    EXPECT_NEAR(dto.overlay.triangleEnergy[0].timeSeconds, 0.001f, 1e-6f);
     EXPECT_FLOAT_EQ(dto.overlay.triangleEnergy[0].vertices[1].x, 1.0f);
 
-    EXPECT_TRUE(dto.overlay.triangleEnergy[1].hasGeometry);
-    EXPECT_NEAR(dto.overlay.triangleEnergy[1].energy, 0.625f, 1e-6f);
+    EXPECT_TRUE(dto.overlay.triangleEnergy[3].hasGeometry);
+    EXPECT_EQ(dto.overlay.triangleEnergy[3].triangleId, 11);
+    EXPECT_NEAR(dto.overlay.triangleEnergy[3].energy, 0.5f, 1e-6f);
+    EXPECT_NEAR(dto.overlay.triangleEnergy[3].timeSeconds, 0.001f, 1e-6f);
 }
 
 TEST(GuiDiffusion, CoreServicePreservaCoeficienteDifusionDesdeInputGui) {
